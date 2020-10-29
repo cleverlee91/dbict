@@ -1,0 +1,502 @@
+ASN_MODULE_SRCS=	\
+	VarLengthNumber.c	\
+	Ext1.c	\
+	Ext2.c	\
+	Ext3.c	\
+	VarLengthNumber2.c	\
+	Extension.c	\
+	RefExt.c	\
+	DataRate80211.c	\
+	TXpower80211.c	\
+	ChannelNumber80211.c	\
+	WsaRepeatRate.c	\
+	TwoDLocation.c	\
+	ThreeDLocation.c	\
+	AdvertiserIdentifier.c	\
+	ProviderServiceContext.c	\
+	IPv6Address.c	\
+	ServicePort.c	\
+	ProviderMacAddress.c	\
+	MACaddress.c	\
+	RcpiThreshold.c	\
+	WsaCountThreshold.c	\
+	WsaCountThresholdInterval.c	\
+	EdcaParameterSet.c	\
+	EdcaParameterRecord.c	\
+	ChannelAccess80211.c	\
+	SecondaryDns.c	\
+	GatewayMacAddress.c	\
+	Latitude.c	\
+	Longitude.c	\
+	Elevation.c	\
+	SrvAdvMsg.c	\
+	SrvAdvPrtVersion.c	\
+	RsvAdvPrtVersion.c	\
+	SrvAdvMessageType.c	\
+	SrvAdvBody.c	\
+	SrvAdvChangeCount.c	\
+	SrvAdvID.c	\
+	SrvAdvContentCount.c	\
+	SrvAdvMsgHeaderExts.c	\
+	SrvAdvMsgHeaderExt.c	\
+	ServiceInfos.c	\
+	ServiceInfo.c	\
+	ChannelOptions.c	\
+	ChannelIndex.c	\
+	ReplyAddress.c	\
+	MandApp.c	\
+	ServiceInfoExts.c	\
+	ServiceInfoExt.c	\
+	ChannelInfos.c	\
+	ChannelInfo.c	\
+	OperatingClass80211.c	\
+	WsaChInfoDataRate.c	\
+	ChInfoOptions.c	\
+	ChannelInfoExts.c	\
+	ChannelInfoExt.c	\
+	RoutingAdvertisement.c	\
+	RouterLifetime.c	\
+	IpV6Prefix.c	\
+	IpV6PrefixLength.c	\
+	RoutAdvertExts.c	\
+	RoutAdvertExt.c	\
+	ShortMsgNpdu.c	\
+	ShortMsgSubtype.c	\
+	NoSubtypeProcessing.c	\
+	ShortMsgVersion.c	\
+	NullNetworking.c	\
+	ShortMsgNextensions.c	\
+	ShortMsgNextension.c	\
+	ShortMsgTpdus.c	\
+	NoTpidProcessing.c	\
+	ShortMsgBcPDU.c	\
+	ShortMsgData.c	\
+	ShortMsgTextensions.c	\
+	ShortMsgTextension.c	\
+	DummyExtension.c	\
+	TCI16093.c	\
+	Dot3Request.c	\
+	Dot3SetWsmTxInfo.c	\
+	Dot3StartWsmTx.c	\
+	Dot3Indication.c	\
+	Dot3ResponseInfo.c	\
+	TCI16094.c	\
+	Dot4Request.c	\
+	Dot4SetWsmTxInfo.c	\
+	Dot4StartWsmTx.c	\
+	Dot4Indication.c	\
+	Dot4ResponseInfo.c	\
+	TCI29451.c	\
+	D2945Request.c	\
+	StartBsmTx.c	\
+	StopBsmTx.c	\
+	StartBsmRx.c	\
+	StopBsmRx.c	\
+	EnableCongestionMitigation.c	\
+	SetTemporaryID.c	\
+	SetTransmissionState.c	\
+	SetSteeringWheelAngle.c	\
+	SetBrakeSystemStatus.c	\
+	SetVehicleSize.c	\
+	SetVehicleEventFlags.c	\
+	SetExteriorLights.c	\
+	D2945Indication.c	\
+	TCI80211.c	\
+	Dot11Request.c	\
+	Dot11SetWsmTxInfo.c	\
+	Dot11StartWsmTx.c	\
+	Dot11Indication.c	\
+	PduData.c	\
+	PduType.c	\
+	Opaque.c	\
+	HashedId8.c	\
+	Response.c	\
+	ResultCode.c	\
+	Exception.c	\
+	ExceptionType.c	\
+	Module.c	\
+	ExceptionId.c	\
+	ExceptionText.c	\
+	RadioInterface.c	\
+	Radio.c	\
+	Antenna.c	\
+	TimeSlot.c	\
+	RCPI.c	\
+	UserPriority.c	\
+	Time64.c	\
+	Psid.c	\
+	RepeatRate.c	\
+	MsgID.c	\
+	TCIMsg.c	\
+	Frame.c	\
+	EventHandling.c	\
+	RxFlag.c	\
+	EventFlag.c	\
+	SecurityFlag.c	\
+	EventParamsChoice.c	\
+	TCISutControl.c	\
+	SutRequest.c	\
+	SetTestId.c	\
+	Shutdown.c	\
+	Restart.c	\
+	RequestSutAvailability.c	\
+	RequestSutInfo.c	\
+	SutResponseInfo.c	\
+	EnableGpsInput.c	\
+	SetGpsTime.c	\
+	SetLatitude.c	\
+	SetLongitude.c	\
+	SetElevation.c	\
+	SetPositionalAccuracy.c	\
+	SetSpeed.c	\
+	SetHeading.c	\
+	SetAccelerationSet4Way.c	\
+	Indication.c	\
+	Event.c	\
+	EventParams.c	\
+	Pdu.c	\
+	ServiceParameters.c	\
+	WsmParameters.c	\
+	IpParameters.c	\
+	D80211Parameters.c	\
+	SecResultParams.c	\
+	SecurityResultCode.c	\
+	AddTxProfile.c	\
+	DelTxProfile.c	\
+	GetIPv6InterfaceInfo.c	\
+	SetIPv6Address.c	\
+	IPv6TxRecord.c	\
+	StartIPv6Tx.c	\
+	StopIPv6Tx.c	\
+	StartIPv6Ping.c	\
+	StopIPv6Ping.c	\
+	IPv6RxRecord.c	\
+	StartIPv6Rx.c	\
+	StopIPv6Rx.c	\
+	ResponseInfo.c	\
+	InfoContent.c	\
+	Ipv6InterfaceInfo.c	\
+	SutInfo.c	\
+	VersionInfoBlock.c	\
+	SetInitialState.c	\
+	SetWsmTxInfo.c	\
+	StartWsmTx.c	\
+	StopWsmTx.c	\
+	StartWsmRx.c	\
+	StopWsmRx.c	\
+	StartWsaTxPerdiodic.c	\
+	StopWsaTxPeriodic.c	\
+	AddWsaProviderService.c	\
+	ChangeWsaProviderService.c	\
+	DelWsaProviderService.c	\
+	AddUserService.c	\
+	DelUserService.c	\
+	ContentType.c	\
+	SignerIdentifierType.c	\
+	SecurityContext.c	\
+	WaveElementsIncluded.c	\
+	UserRequestType.c	\
+	WsaType.c	\
+	WsmServiceInfos.c	\
+	WsmServiceInfo.c	\
+	WsmChannelOptions.c
+
+ASN_MODULE_HDRS=	\
+	VarLengthNumber.h	\
+	Ext1.h	\
+	Ext2.h	\
+	Ext3.h	\
+	VarLengthNumber2.h	\
+	Extension.h	\
+	RefExt.h	\
+	DataRate80211.h	\
+	TXpower80211.h	\
+	ChannelNumber80211.h	\
+	WsaRepeatRate.h	\
+	TwoDLocation.h	\
+	ThreeDLocation.h	\
+	AdvertiserIdentifier.h	\
+	ProviderServiceContext.h	\
+	IPv6Address.h	\
+	ServicePort.h	\
+	ProviderMacAddress.h	\
+	MACaddress.h	\
+	RcpiThreshold.h	\
+	WsaCountThreshold.h	\
+	WsaCountThresholdInterval.h	\
+	EdcaParameterSet.h	\
+	EdcaParameterRecord.h	\
+	ChannelAccess80211.h	\
+	SecondaryDns.h	\
+	GatewayMacAddress.h	\
+	Latitude.h	\
+	Longitude.h	\
+	Elevation.h	\
+	SrvAdvMsg.h	\
+	SrvAdvPrtVersion.h	\
+	RsvAdvPrtVersion.h	\
+	SrvAdvMessageType.h	\
+	SrvAdvBody.h	\
+	SrvAdvChangeCount.h	\
+	SrvAdvID.h	\
+	SrvAdvContentCount.h	\
+	SrvAdvMsgHeaderExts.h	\
+	SrvAdvMsgHeaderExt.h	\
+	ServiceInfos.h	\
+	ServiceInfo.h	\
+	ChannelOptions.h	\
+	ChannelIndex.h	\
+	ReplyAddress.h	\
+	MandApp.h	\
+	ServiceInfoExts.h	\
+	ServiceInfoExt.h	\
+	ChannelInfos.h	\
+	ChannelInfo.h	\
+	OperatingClass80211.h	\
+	WsaChInfoDataRate.h	\
+	ChInfoOptions.h	\
+	ChannelInfoExts.h	\
+	ChannelInfoExt.h	\
+	RoutingAdvertisement.h	\
+	RouterLifetime.h	\
+	IpV6Prefix.h	\
+	IpV6PrefixLength.h	\
+	RoutAdvertExts.h	\
+	RoutAdvertExt.h	\
+	ShortMsgNpdu.h	\
+	ShortMsgSubtype.h	\
+	NoSubtypeProcessing.h	\
+	ShortMsgVersion.h	\
+	NullNetworking.h	\
+	ShortMsgNextensions.h	\
+	ShortMsgNextension.h	\
+	ShortMsgTpdus.h	\
+	NoTpidProcessing.h	\
+	ShortMsgBcPDU.h	\
+	ShortMsgData.h	\
+	ShortMsgTextensions.h	\
+	ShortMsgTextension.h	\
+	DummyExtension.h	\
+	TCI16093.h	\
+	Dot3Request.h	\
+	Dot3SetWsmTxInfo.h	\
+	Dot3StartWsmTx.h	\
+	Dot3Indication.h	\
+	Dot3ResponseInfo.h	\
+	TCI16094.h	\
+	Dot4Request.h	\
+	Dot4SetWsmTxInfo.h	\
+	Dot4StartWsmTx.h	\
+	Dot4Indication.h	\
+	Dot4ResponseInfo.h	\
+	TCI29451.h	\
+	D2945Request.h	\
+	StartBsmTx.h	\
+	StopBsmTx.h	\
+	StartBsmRx.h	\
+	StopBsmRx.h	\
+	EnableCongestionMitigation.h	\
+	SetTemporaryID.h	\
+	SetTransmissionState.h	\
+	SetSteeringWheelAngle.h	\
+	SetBrakeSystemStatus.h	\
+	SetVehicleSize.h	\
+	SetVehicleEventFlags.h	\
+	SetExteriorLights.h	\
+	D2945Indication.h	\
+	TCI80211.h	\
+	Dot11Request.h	\
+	Dot11SetWsmTxInfo.h	\
+	Dot11StartWsmTx.h	\
+	Dot11Indication.h	\
+	PduData.h	\
+	PduType.h	\
+	Opaque.h	\
+	HashedId8.h	\
+	Response.h	\
+	ResultCode.h	\
+	Exception.h	\
+	ExceptionType.h	\
+	Module.h	\
+	ExceptionId.h	\
+	ExceptionText.h	\
+	RadioInterface.h	\
+	Radio.h	\
+	Antenna.h	\
+	TimeSlot.h	\
+	RCPI.h	\
+	UserPriority.h	\
+	Time64.h	\
+	Psid.h	\
+	RepeatRate.h	\
+	MsgID.h	\
+	TCIMsg.h	\
+	Frame.h	\
+	EventHandling.h	\
+	RxFlag.h	\
+	EventFlag.h	\
+	SecurityFlag.h	\
+	EventParamsChoice.h	\
+	TCISutControl.h	\
+	SutRequest.h	\
+	SetTestId.h	\
+	Shutdown.h	\
+	Restart.h	\
+	RequestSutAvailability.h	\
+	RequestSutInfo.h	\
+	SutResponseInfo.h	\
+	EnableGpsInput.h	\
+	SetGpsTime.h	\
+	SetLatitude.h	\
+	SetLongitude.h	\
+	SetElevation.h	\
+	SetPositionalAccuracy.h	\
+	SetSpeed.h	\
+	SetHeading.h	\
+	SetAccelerationSet4Way.h	\
+	Indication.h	\
+	Event.h	\
+	EventParams.h	\
+	Pdu.h	\
+	ServiceParameters.h	\
+	WsmParameters.h	\
+	IpParameters.h	\
+	D80211Parameters.h	\
+	SecResultParams.h	\
+	SecurityResultCode.h	\
+	AddTxProfile.h	\
+	DelTxProfile.h	\
+	GetIPv6InterfaceInfo.h	\
+	SetIPv6Address.h	\
+	IPv6TxRecord.h	\
+	StartIPv6Tx.h	\
+	StopIPv6Tx.h	\
+	StartIPv6Ping.h	\
+	StopIPv6Ping.h	\
+	IPv6RxRecord.h	\
+	StartIPv6Rx.h	\
+	StopIPv6Rx.h	\
+	ResponseInfo.h	\
+	InfoContent.h	\
+	Ipv6InterfaceInfo.h	\
+	SutInfo.h	\
+	VersionInfoBlock.h	\
+	SetInitialState.h	\
+	SetWsmTxInfo.h	\
+	StartWsmTx.h	\
+	StopWsmTx.h	\
+	StartWsmRx.h	\
+	StopWsmRx.h	\
+	StartWsaTxPerdiodic.h	\
+	StopWsaTxPeriodic.h	\
+	AddWsaProviderService.h	\
+	ChangeWsaProviderService.h	\
+	DelWsaProviderService.h	\
+	AddUserService.h	\
+	DelUserService.h	\
+	ContentType.h	\
+	SignerIdentifierType.h	\
+	SecurityContext.h	\
+	WaveElementsIncluded.h	\
+	UserRequestType.h	\
+	WsaType.h	\
+	WsmServiceInfos.h	\
+	WsmServiceInfo.h	\
+	WsmChannelOptions.h
+
+ASN_MODULE_HDRS+=ANY.h
+ASN_MODULE_SRCS+=ANY.c
+ASN_MODULE_HDRS+=OCTET_STRING.h
+ASN_MODULE_HDRS+=OPEN_TYPE.h
+ASN_MODULE_SRCS+=OPEN_TYPE.c
+ASN_MODULE_HDRS+=constr_CHOICE.h
+ASN_MODULE_HDRS+=BOOLEAN.h
+ASN_MODULE_SRCS+=BOOLEAN.c
+ASN_MODULE_HDRS+=ENUMERATED.h
+ASN_MODULE_SRCS+=ENUMERATED.c
+ASN_MODULE_HDRS+=INTEGER.h
+ASN_MODULE_HDRS+=NativeEnumerated.h
+ASN_MODULE_SRCS+=INTEGER.c
+ASN_MODULE_HDRS+=NULL.h
+ASN_MODULE_SRCS+=NULL.c
+ASN_MODULE_SRCS+=NativeEnumerated.c
+ASN_MODULE_HDRS+=NativeInteger.h
+ASN_MODULE_SRCS+=NativeInteger.c
+ASN_MODULE_HDRS+=UTF8String.h
+ASN_MODULE_SRCS+=UTF8String.c
+ASN_MODULE_HDRS+=asn_SEQUENCE_OF.h
+ASN_MODULE_SRCS+=asn_SEQUENCE_OF.c
+ASN_MODULE_HDRS+=asn_SET_OF.h
+ASN_MODULE_SRCS+=asn_SET_OF.c
+ASN_MODULE_SRCS+=constr_CHOICE.c
+ASN_MODULE_HDRS+=constr_SEQUENCE.h
+ASN_MODULE_SRCS+=constr_SEQUENCE.c
+ASN_MODULE_HDRS+=constr_SEQUENCE_OF.h
+ASN_MODULE_SRCS+=constr_SEQUENCE_OF.c
+ASN_MODULE_HDRS+=constr_SET_OF.h
+ASN_MODULE_SRCS+=constr_SET_OF.c
+ASN_MODULE_HDRS+=asn_application.h
+ASN_MODULE_SRCS+=asn_application.c
+ASN_MODULE_HDRS+=asn_ioc.h
+ASN_MODULE_HDRS+=asn_system.h
+ASN_MODULE_HDRS+=asn_codecs.h
+ASN_MODULE_HDRS+=asn_internal.h
+ASN_MODULE_SRCS+=asn_internal.c
+ASN_MODULE_HDRS+=asn_random_fill.h
+ASN_MODULE_SRCS+=asn_random_fill.c
+ASN_MODULE_HDRS+=asn_bit_data.h
+ASN_MODULE_SRCS+=asn_bit_data.c
+ASN_MODULE_SRCS+=OCTET_STRING.c
+ASN_MODULE_HDRS+=BIT_STRING.h
+ASN_MODULE_SRCS+=BIT_STRING.c
+ASN_MODULE_SRCS+=asn_codecs_prim.c
+ASN_MODULE_HDRS+=asn_codecs_prim.h
+ASN_MODULE_HDRS+=ber_tlv_length.h
+ASN_MODULE_SRCS+=ber_tlv_length.c
+ASN_MODULE_HDRS+=ber_tlv_tag.h
+ASN_MODULE_SRCS+=ber_tlv_tag.c
+ASN_MODULE_HDRS+=ber_decoder.h
+ASN_MODULE_SRCS+=ber_decoder.c
+ASN_MODULE_HDRS+=der_encoder.h
+ASN_MODULE_SRCS+=der_encoder.c
+ASN_MODULE_HDRS+=constr_TYPE.h
+ASN_MODULE_SRCS+=constr_TYPE.c
+ASN_MODULE_HDRS+=constraints.h
+ASN_MODULE_SRCS+=constraints.c
+ASN_MODULE_HDRS+=xer_support.h
+ASN_MODULE_SRCS+=xer_support.c
+ASN_MODULE_HDRS+=xer_decoder.h
+ASN_MODULE_SRCS+=xer_decoder.c
+ASN_MODULE_HDRS+=xer_encoder.h
+ASN_MODULE_SRCS+=xer_encoder.c
+ASN_MODULE_HDRS+=per_support.h
+ASN_MODULE_SRCS+=per_support.c
+ASN_MODULE_HDRS+=per_decoder.h
+ASN_MODULE_SRCS+=per_decoder.c
+ASN_MODULE_HDRS+=per_encoder.h
+ASN_MODULE_SRCS+=per_encoder.c
+ASN_MODULE_HDRS+=per_opentype.h
+ASN_MODULE_SRCS+=per_opentype.c
+ASN_MODULE_HDRS+=oer_decoder.h
+ASN_MODULE_HDRS+=oer_encoder.h
+ASN_MODULE_HDRS+=oer_support.h
+ASN_MODULE_SRCS+=oer_decoder.c
+ASN_MODULE_SRCS+=oer_encoder.c
+ASN_MODULE_SRCS+=oer_support.c
+ASN_MODULE_SRCS+=OPEN_TYPE_oer.c
+ASN_MODULE_SRCS+=INTEGER_oer.c
+ASN_MODULE_SRCS+=BIT_STRING_oer.c
+ASN_MODULE_SRCS+=OCTET_STRING_oer.c
+ASN_MODULE_SRCS+=NativeInteger_oer.c
+ASN_MODULE_SRCS+=NativeEnumerated_oer.c
+ASN_MODULE_SRCS+=constr_CHOICE_oer.c
+ASN_MODULE_SRCS+=constr_SEQUENCE_oer.c
+ASN_MODULE_SRCS+=constr_SET_OF_oer.c
+
+ASN_MODULE_CFLAGS=-DASN_DISABLE_PER_SUPPORT 
+
+lib_LTLIBRARIES+=libasncodec.la
+libasncodec_la_SOURCES=$(ASN_MODULE_SRCS) $(ASN_MODULE_HDRS)
+libasncodec_la_CPPFLAGS=-I$(top_srcdir)/
+libasncodec_la_CFLAGS=$(ASN_MODULE_CFLAGS)
+libasncodec_la_LDFLAGS=-lm
