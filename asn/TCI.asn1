@@ -1,0 +1,2232 @@
+CITSapplMgmtIDs {iso(1) standard(0) cits-applMgmt (17419) ids (1) version1 (1)} 
+DEFINITIONS AUTOMATIC TAGS::=BEGIN
+
+-- Warning: Module is still under development
+
+IMPORTS
+
+;
+
+-- End of IMPORTS
+
+-- Types
+
+-- Variable length data types
+
+VarLengthNumber::=CHOICE{
+	content		[0]	INTEGER(0..127), -- one octet length
+	extension	[1]	Ext1
+	}
+
+Ext1::=CHOICE{
+	content		[0]	INTEGER(128..16511), -- two octets length
+	extension	[1]	Ext2
+}
+
+Ext2::=CHOICE{
+	content		[0]	INTEGER(16512..2113663), -- three octets length
+	extension	[1]	Ext3
+	}
+
+Ext3::=INTEGER(2113664..270549119,...) -- four and more octets length
+
+
+VarLengthNumber2::=CHOICE{
+	shortNo	[0] INTEGER(0..127),
+	longNo	[1] INTEGER(0..32767)
+	}
+
+
+-- Values
+
+version INTEGER(0..255)::=1 -- version of this module
+
+/*
+   The ASN.1 specification has been checked for conformance to the ASN.1
+   standards by OSS ASN.1 Syntax Checker, and by OSS ASN-1STEP
+*/
+
+END
+/*--<OSS.PDU>--*/
+IEEE-1609-3-WEE {iso(1) identified-organization(3) ieee(111) standards-association-numbered-series-standards(2) wave-stds(1609) dot3(3) wee(1) version0(0)}
+DEFINITIONS AUTOMATIC TAGS ::= 
+BEGIN
+
+/* Quality check info:
+Proper syntax and correct mapping of UPER on the intended binary presentation as specified in the main body of this document was validated with the OSS ASN.1 Studio tool.
+*/
+
+IMPORTS
+
+;
+
+-- WAVE Extension Elements CLASS and reference value definitions 
+-- CLASS
+EXT-TYPE ::= CLASS {
+      &extRef RefExt UNIQUE,
+      &ExtValue
+    }
+    WITH SYNTAX {&ExtValue IDENTIFIED BY &extRef}
+
+-- General extension (profiling)
+Extension {EXT-TYPE : ExtensionTypes} ::= SEQUENCE {
+    extensionId EXT-TYPE.&extRef({ExtensionTypes}),
+    value   EXT-TYPE.&ExtValue({ExtensionTypes}{@.extensionId})
+    }
+-- ExtensionTypes are specified for WSA and WSM
+
+-- Reference values (for all types of extensions)
+RefExt::=INTEGER (0..255)
+
+c-Reserved  RefExt ::= 0
+c-TxPowerUsed80211  RefExt ::= 4 -- WSM
+c-2Dlocation    RefExt ::= 5 -- WSA Header
+c-3Dlocation    RefExt ::= 6 -- WSA Header
+c-advertiserID  RefExt ::= 7 -- WSA Header
+c-ProviderServContext   RefExt ::= 8 -- WSA Service Info
+c-IPv6Address   RefExt ::= 9 -- WSA Service Info
+c-servicePort   RefExt ::= 10 -- WSA Service Info
+c-ProviderMACaddress    RefExt ::= 11 -- WSA Service Info
+c-EDCAparameterSet  RefExt ::= 12 -- WSA Channel Info
+c-SecondaryDNS  RefExt ::= 13 -- WSA Routing Advertisement
+c-GatewayMACaddress RefExt ::= 14 -- WSA Routing Advertisement
+c-ChannelNumber80211    RefExt ::= 15 -- WSM
+c-DataRate80211 RefExt ::= 16 -- WSM
+c-RepeatRate    RefExt ::= 17 -- WSA Header
+c-RCPIthreshold RefExt ::= 19 -- WSA Service Info
+c-WSAcountThreshold RefExt ::= 20 -- WSA Service Info
+c-ChannelAccess RefExt ::= 21 -- WSA Channel Info
+c-WSAcountThresInt  RefExt ::= 22 -- WSA Service Info
+c-ChannelLoad   RefExt ::= 23 -- WSM-N-Header. 
+-- ChannelLoad is not specified in this standard.
+-- reserved for ISO RefExt in the range 80 to 120
+-- all other values of RefExt are reserved
+
+
+-- WSM extension elements
+
+DataRate80211::=INTEGER(0..255)
+
+TXpower80211::=INTEGER(-128..127)
+
+ChannelNumber80211::=INTEGER(0..255)
+
+
+--WSA message header extension elements
+
+WsaRepeatRate ::= INTEGER (0..255)
+
+TwoDLocation ::= SEQUENCE {
+    latitude    Latitude,
+    longitude   Longitude
+    }
+
+ThreeDLocation ::= SEQUENCE {
+    latitude    Latitude,
+    longitude   Longitude,
+    elevation   Elevation
+    }
+
+-- max. 32 octets are allowed in AdvertiserIdentifier!!!
+-- The 32 characters may produce more than 32 octets in UPER
+AdvertiserIdentifier ::= UTF8String (SIZE (1..32))
+
+
+--ServiceInfo extension elements
+-- Note: The size constraint has to be (0..255) although the PSC may
+-- consist of maximum 31 octets!
+-- ProviderServiceContext ::= OCTET STRING(SIZE(0..255)) 
+-- alternatively in order to get the size constraint checking
+ProviderServiceContext ::= SEQUENCE{
+    fillBit BIT STRING (SIZE(3)), -- all bits set to zero!
+    psc OCTET STRING (SIZE(0..31)) -- size zero is not recommended
+    }
+    
+
+IPv6Address ::= OCTET STRING (SIZE (16))
+
+ServicePort ::= INTEGER (0..65535)
+
+ProviderMacAddress ::= MACaddress
+
+MACaddress ::= OCTET STRING (SIZE(6))
+
+RcpiThreshold ::= INTEGER (0..255) -- see IEEE Std 802.11
+
+WsaCountThreshold ::= INTEGER (0..255)
+
+WsaCountThresholdInterval ::= INTEGER (0..255) -- value 0 is not used
+
+
+--ChannelInfo extension elements
+EdcaParameterSet ::= SEQUENCE{
+    acbeRecord  EdcaParameterRecord,
+    acbkRecord  EdcaParameterRecord,
+    acviRecord  EdcaParameterRecord,
+    acvoRecord  EdcaParameterRecord
+    }
+
+EdcaParameterRecord ::= SEQUENCE {
+    res INTEGER (0..1),
+    aci INTEGER (0..3),
+    acm     INTEGER (0..1),
+    aifsn   INTEGER (0..15),
+    ecwMax  INTEGER (0..15),    -- ecwMax is the exponent in CWmax = 2^ecwMax-1
+    ecwMin  INTEGER (0..15),
+    txopLimit   INTEGER (0..65535)
+    }
+
+ChannelAccess80211 ::= INTEGER {
+    continuous  (0),
+    alternatingSCH  (1),
+    alternatingCCH  (2)
+} (0..255)
+
+
+--RoutingAdvertisement extension elements
+
+SecondaryDns ::= IPv6Address
+
+GatewayMacAddress ::= MACaddress
+
+Latitude ::= SEQUENCE{
+    fill    BIT STRING (SIZE(1)), -- set to '0' (MSB of Latitude)
+    lat     INTEGER (-900000000..900000001) -- in 0,1 micro degree, Providing a range of plus-minus 90 degrees 
+    }
+
+-- Longitude ::= INTEGER (-1800000000..1800000001) as defined in 1609.3
+Longitude ::= INTEGER (-1799999999..1800000001) -- changed to J2735 definition
+-- 1/10 micro degree
+-- Providing a range of plus-minus 180 degrees
+
+Elevation ::= INTEGER (-4096..61439)
+-- In units of 10 cm steps above or below the reference ellipsoid
+-- Providing a range of -409.5 to + 6143.9 meters
+-- The value -4096 shall be used when Unknown is to be sent
+
+
+END
+/*--<OSS.PDU>--*/
+IEEE-1609-3-WSA {iso(1) identified-organization(3) ieee(111) standards-association-numbered-series-standards(2) wave-stds(1609) dot3(3) wsa(3) version0(0)}
+DEFINITIONS AUTOMATIC TAGS ::= 
+BEGIN
+
+/* Qualtiy check info:
+Proper syntax and correct mapping of UPER on the intended binary presentation as specified in the main body of this document was validated with the OSS ASN.1 Studio tool.
+*/
+
+IMPORTS
+
+VarLengthNumber FROM CITSapplMgmtIDs {iso(1) standard(0) cits-applMgmt (17419) ids (1) version1 (1)} 
+
+EXT-TYPE, Extension, RefExt, c-Reserved, c-RepeatRate,c-TxPowerUsed80211, c-2Dlocation, c-3Dlocation, c-advertiserID, c-IPv6Address, c-servicePort,c-EDCAparameterSet, c-ChannelAccess, c-SecondaryDNS, c-GatewayMACaddress,  c-ProviderMACaddress, c-RCPIthreshold, c-WSAcountThreshold, c-WSAcountThresInt, c-ProviderServContext, WsaRepeatRate, TwoDLocation, ThreeDLocation, AdvertiserIdentifier, ProviderServiceContext, EdcaParameterSet, ChannelAccess80211, SecondaryDns,GatewayMacAddress, IPv6Address, TXpower80211, DataRate80211, ChannelNumber80211, ServicePort, ProviderMacAddress, RcpiThreshold, WsaCountThreshold, WsaCountThresholdInterval FROM IEEE-1609-3-WEE {iso(1) identified-organization(3) ieee(111) standards-association-numbered-series-standards(2) wave-stds(1609) dot3(3) wee(1) version0(0)}
+
+/* for information only
+PortNumber FROM CALMfntp { iso (1) standard (0) calm-nonip(29281) fntp(1) asnm-1 (1) version1 (1)} 
+*/
+;
+
+
+-- WSA message
+SrvAdvMsg ::= SEQUENCE { 
+	version 	SrvAdvPrtVersion, -- WSA version
+	body	SrvAdvBody
+	}
+
+SrvAdvPrtVersion ::= SEQUENCE{
+	messageID	SrvAdvMessageType, -- always set to 0
+	rsvAdvPrtVersion	RsvAdvPrtVersion -- Set to c-rsvAdvPrtVersionNo
+	}
+
+RsvAdvPrtVersion ::= INTEGER (0..7) -- Protocol version
+
+-- Version number indicating the WSA specification in this document
+c-rsvAdvPrtVersionNo	INTEGER (0..7)::=3 -- actual version number of WSA
+
+SrvAdvMessageType ::= INTEGER{
+	saMessage	(0), -- WSA message in IEEE 1609.3, SAM in ISO 24102-5
+	sarMessage	(1) -- SAR message used in ISO 24102-5
+	} (0..1)
+
+SrvAdvBody ::= SEQUENCE{
+	changeCount	SrvAdvChangeCount,
+	extensions	SrvAdvMsgHeaderExts OPTIONAL,
+	serviceInfos	ServiceInfos OPTIONAL,
+	channelInfos	ChannelInfos OPTIONAL,
+	routingAdvertisement	RoutingAdvertisement OPTIONAL
+	}
+	
+
+SrvAdvChangeCount ::= SEQUENCE{
+	saID	SrvAdvID,
+	contentCount	SrvAdvContentCount
+	}
+
+SrvAdvID ::= INTEGER(0..15)
+
+SrvAdvContentCount ::= INTEGER(0..15)
+	
+
+
+-- WSA header extensions
+SrvAdvMsgHeaderExts::= SEQUENCE OF SrvAdvMsgHeaderExt
+
+SrvAdvMsgHeaderExt ::= Extension {{SrvAdvMsgHeaderExtTypes}}
+
+SrvAdvMsgHeaderExtTypes EXT-TYPE ::= {
+	{ WsaRepeatRate 	IDENTIFIED BY c-RepeatRate } |
+	{ TwoDLocation 	IDENTIFIED BY c-2Dlocation } |
+	{ ThreeDLocation IDENTIFIED BY c-3Dlocation} |
+	{ AdvertiserIdentifier 	IDENTIFIED BY c-advertiserID } ,
+	...
+	}
+
+
+-- Service Info List
+ServiceInfos ::= SEQUENCE OF ServiceInfo -- '0' size allows to send only a routing advertisement
+
+ServiceInfo ::= SEQUENCE {
+	serviceID	VarLengthNumber, -- PSID
+	channelIndex	ChannelIndex, -- 5 bits
+	chOptions	ChannelOptions 
+	}
+
+ChannelOptions ::= SEQUENCE{
+	mandApp	MandApp OPTIONAL, -- in WSA set to '0'b
+	serviceProviderPort	ReplyAddress OPTIONAL, -- in WSA set to '0'b
+	extensions	ServiceInfoExts OPTIONAL 
+	}
+	
+
+ChannelIndex ::= INTEGER {
+	notUsed	(0), -- ChannelInfos is not used 
+	firstEntry	(1)
+	}(0..31)
+
+/* For information: ISO definition
+ReplyAddress ::= PortNumber -- when not present PSID is used for source and destination
+*/
+-- Dummy ReplyAddress as long as port numbers are not used
+ReplyAddress ::= NULL -- never used
+
+-- Dummy MandApp as long as this feature is not used
+MandApp ::= NULL
+
+-- Service Info Extensions
+ServiceInfoExts ::= SEQUENCE OF ServiceInfoExt
+
+ServiceInfoExt ::= Extension {{ServiceInfoExtTypes}}
+
+ServiceInfoExtTypes EXT-TYPE ::= {
+	{ ProviderServiceContext	IDENTIFIED BY c-ProviderServContext } |
+	{ IPv6Address	IDENTIFIED BY c-IPv6Address } |
+	{ ServicePort	IDENTIFIED BY c-servicePort} |
+	{ ProviderMacAddress	IDENTIFIED BY c-ProviderMACaddress } |
+	{ RcpiThreshold	IDENTIFIED BY c-RCPIthreshold } |
+	{ WsaCountThreshold	IDENTIFIED BY c-WSAcountThreshold } |
+	{ WsaCountThresholdInterval IDENTIFIED BY c-WSAcountThresInt },
+	...
+	}
+
+
+-- Channel Info List
+ChannelInfos ::= SEQUENCE OF ChannelInfo
+
+ChannelInfo ::= SEQUENCE{
+	operatingClass	OperatingClass80211,
+	channelNumber	ChannelNumber80211,
+	powerLevel	TXpower80211,
+	dataRate	WsaChInfoDataRate,
+	extensions	ChInfoOptions
+	}
+
+OperatingClass80211 ::= INTEGER (0..255)
+
+WsaChInfoDataRate ::= SEQUENCE{
+	adaptable	BIT STRING (SIZE(1)),
+	dataRate	INTEGER (0..127)
+	}
+
+ChInfoOptions ::= SEQUENCE{
+	option1	NULL OPTIONAL, -- not used
+	option2	NULL OPTIONAL, -- not used
+	option3	NULL OPTIONAL, -- not used
+	option4	NULL OPTIONAL, -- not used
+	option5	NULL OPTIONAL, -- not used
+	option6	NULL OPTIONAL, -- not used
+	option7	NULL OPTIONAL, -- not used
+	extensions	ChannelInfoExts OPTIONAL
+	} -- this is the one octet "Channel Info Option Indicator"
+
+
+-- Channel Info extensions
+ChannelInfoExts ::= SEQUENCE OF ChannelInfoExt
+
+ChannelInfoExt ::= Extension {{ChannelInfoExtTypes}}
+
+ChannelInfoExtTypes EXT-TYPE ::= {
+	{ EdcaParameterSet	IDENTIFIED BY c-EDCAparameterSet } |
+	{ ChannelAccess80211 IDENTIFIED BY c-ChannelAccess },
+	...
+	}
+
+
+-- Routing Advertisement
+RoutingAdvertisement ::= SEQUENCE {
+	lifetime	RouterLifetime,
+	ipPrefix	IpV6Prefix,
+	ipPrefixLength	IpV6PrefixLength,
+	defaultGateway	IPv6Address,
+	primaryDns	IPv6Address,
+	extensions	RoutAdvertExts
+	}
+
+RouterLifetime ::= INTEGER (0..65535)
+
+IpV6Prefix ::= OCTET STRING (SIZE (16))
+
+IpV6PrefixLength ::= INTEGER (0..255)
+
+
+-- Routing Advertisement extensions
+RoutAdvertExts ::= SEQUENCE OF RoutAdvertExt
+
+RoutAdvertExt ::= Extension {{RoutAdvertExtTypes}}
+
+RoutAdvertExtTypes EXT-TYPE ::= {
+	{ SecondaryDns	IDENTIFIED BY c-SecondaryDNS } |
+	{ GatewayMacAddress	IDENTIFIED BY c-GatewayMACaddress },
+	...
+	}
+
+
+END
+
+/*--<OSS.PDU>--*/
+IEEE-1609-3-WSM {iso(1) identified-organization(3) ieee(111) standards-association-numbered-series-standards(2) wave-stds(1609) dot3(3) wsm(2) version0(0)}
+DEFINITIONS AUTOMATIC TAGS ::= 
+BEGIN
+
+/* Quality check info:
+Proper syntax and correct mapping of UPER on the intended binary presentation as specified in the main body of this document was validated with the OSS ASN.1 Studio tool.
+*/
+
+IMPORTS
+
+VarLengthNumber FROM CITSapplMgmtIDs {iso(1) standard(0) cits-applMgmt (17419) ids (1) version1 (1)} -- this is the p-encoded PSID
+
+EXT-TYPE, Extension,RefExt,c-ChannelLoad, c-Reserved, c-TxPowerUsed80211, c-DataRate80211, c-ChannelNumber80211, ChannelNumber80211, DataRate80211, TXpower80211 FROM IEEE-1609-3-WEE {iso(1) identified-organization(3) ieee(111) standards-association-numbered-series-standards(2) wave-stds(1609) dot3(3) wee(1) version0(0)}
+
+;
+
+-- End of IMPORTS
+
+-- WSM
+
+
+ShortMsgNpdu::=SEQUENCE { 
+	subtype	ShortMsgSubtype, -- TPID is part of transport
+	transport	ShortMsgTpdus,
+	body	ShortMsgData -- including two octet length field
+	}
+
+
+-- Sub-Types
+-- With UPER, the below 16 choices produce a 4 bit tag number (0 .. 15) 
+-- choices of type NoSubtypeProcessing cannot be processed
+
+ShortMsgSubtype::=CHOICE{
+	nullNetworking	[0] NullNetworking,
+	subTypeReserved1	[1] NoSubtypeProcessing, -- reserved for ISO
+	subTypeReserved2	[2] NoSubtypeProcessing, -- reserved for ISO
+	subTypeReserved3	[3] NoSubtypeProcessing, -- reserved for ISO
+	subTypeReserved4	[4] NoSubtypeProcessing, -- reserved for ISO
+	subTypeReserved5	[5] NoSubtypeProcessing, -- reserved for ISO
+	subTypeReserved6	[6] NoSubtypeProcessing, -- reserved for ISO
+	subTypeReserved7	[7] NoSubtypeProcessing, -- reserved for ISO
+	subTypeReserved8	[8] NoSubtypeProcessing,
+	subTypeReserved9	[9] NoSubtypeProcessing,
+	subTypeReserved19	[10] NoSubtypeProcessing,
+	subTypeReserved11	[11] NoSubtypeProcessing,
+	subTypeReserved12	[12] NoSubtypeProcessing,
+	subTypeReserved13	[13] NoSubtypeProcessing,
+	subTypeReserved14	[14] NoSubtypeProcessing,
+	subTypeReserved15	[15] NoSubtypeProcessing
+	}
+
+NoSubtypeProcessing ::= SEQUENCE{
+	optBit	BIT STRING (SIZE(1)),  -- always set to '0'b
+	version	ShortMsgVersion -- set to c-shortMsgVersionNo
+	}
+
+ShortMsgVersion ::= INTEGER (0..7)
+
+-- Version number indicating the WSMP specification in this document
+c-shortMsgVersionNo	ShortMsgVersion ::= 3
+
+NullNetworking::= SEQUENCE{
+	version	ShortMsgVersion, -- set to c-shortMsgVersionNo
+	nExtensions	ShortMsgNextensions OPTIONAL
+	}
+
+-- networking extensions
+-- Sequence of 0 to n extension elements
+ShortMsgNextensions::=SEQUENCE OF ShortMsgNextension
+
+-- A single extension element
+ShortMsgNextension::= Extension{{ShortMsgNextTypes}}
+
+-- all available N-Extensions
+
+ShortMsgNextTypes EXT-TYPE::={
+	{ TXpower80211	IDENTIFIED BY c-TxPowerUsed80211 } |
+	{ ChannelNumber80211	IDENTIFIED BY c-ChannelNumber80211 } |
+	{ DataRate80211	IDENTIFIED BY c-DataRate80211 },
+-- {ChannelLoad  IDENTIFIED BY c-ChannelLoad} ,
+-- ChannelLoad is not specified in this standard.
+	...
+	}
+
+
+-- Transport protocol header choices (TPID)
+-- With UPER, the below 128 choices produce a 7 bit tag number (0 .. 127)
+-- choices of type NoTpidProcessing cannot be processed
+ShortMsgTpdus::=CHOICE{
+ 	bcMode	[0] ShortMsgBcPDU,
+	tpidReserved1	[1] NoTpidProcessing, -- reserved for ISO
+	tpidReserved2	[2] NoTpidProcessing, -- reserved for ISO
+	tpidReserved3	[3] NoTpidProcessing, -- reserved for ISO
+	tpidReserved4	[4] NoTpidProcessing, -- reserved for ISO
+	tpidReserved5	[5] NoTpidProcessing, -- reserved for ISO
+	tpidReserved6	[6] NoTpidProcessing, -- reserved for ISO
+	tpidReserved7	[7] NoTpidProcessing, -- reserved for ISO
+	tpidReserved8	[8] NoTpidProcessing, -- reserved for ISO
+	tpidReserved9	[9] NoTpidProcessing, -- reserved for ISO
+	tpidReserved10	[10] NoTpidProcessing, -- reserved for ISO
+	tpidReserved11	[11] NoTpidProcessing,
+	tpidReserved12	[12] NoTpidProcessing,
+	tpidReserved13	[13] NoTpidProcessing,
+	tpidReserved14	[14] NoTpidProcessing,
+	tpidReserved15	[15] NoTpidProcessing,
+	tpidReserved16	[16] NoTpidProcessing,
+	tpidReserved17	[17] NoTpidProcessing,
+	tpidReserved18	[18] NoTpidProcessing,
+	tpidReserved19	[19] NoTpidProcessing,
+	tpidReserved20	[20] NoTpidProcessing,
+	tpidReserved21	[21] NoTpidProcessing,
+	tpidReserved22	[22] NoTpidProcessing,
+	tpidReserved23	[23] NoTpidProcessing,
+	tpidReserved24	[24] NoTpidProcessing,
+	tpidReserved25	[25] NoTpidProcessing,
+	tpidReserved26	[26] NoTpidProcessing,
+	tpidReserved27	[27] NoTpidProcessing,
+	tpidReserved28	[28] NoTpidProcessing,
+	tpidReserved29	[29] NoTpidProcessing,
+	tpidReserved30	[30] NoTpidProcessing,
+	tpidReserved31	[31] NoTpidProcessing,
+	tpidReserved32	[32] NoTpidProcessing,
+	tpidReserved33	[33] NoTpidProcessing,
+	tpidReserved34	[34] NoTpidProcessing,
+	tpidReserved35	[35] NoTpidProcessing,
+	tpidReserved36	[36] NoTpidProcessing,
+	tpidReserved37	[37] NoTpidProcessing,
+	tpidReserved38	[38] NoTpidProcessing,
+	tpidReserved39	[39] NoTpidProcessing,
+	tpidReserved40	[40] NoTpidProcessing,
+	tpidReserved41	[41] NoTpidProcessing,
+	tpidReserved42	[42] NoTpidProcessing,
+	tpidReserved43	[43] NoTpidProcessing,
+	tpidReserved44	[44] NoTpidProcessing,
+	tpidReserved45	[45] NoTpidProcessing,
+	tpidReserved46	[46] NoTpidProcessing,
+	tpidReserved47	[47] NoTpidProcessing,
+	tpidReserved48	[48] NoTpidProcessing,
+	tpidReserved49	[49] NoTpidProcessing,
+	tpidReserved50	[50] NoTpidProcessing,
+	tpidReserved51	[51] NoTpidProcessing,
+	tpidReserved52	[52] NoTpidProcessing,
+	tpidReserved53	[53] NoTpidProcessing,
+	tpidReserved54	[54] NoTpidProcessing,
+	tpidReserved55	[55] NoTpidProcessing,
+	tpidReserved56	[56] NoTpidProcessing,
+	tpidReserved57	[57] NoTpidProcessing,
+	tpidReserved58	[58] NoTpidProcessing,
+	tpidReserved59	[59] NoTpidProcessing,
+	tpidReserved60	[60] NoTpidProcessing,
+	tpidReserved61	[61] NoTpidProcessing,
+	tpidReserved62	[62] NoTpidProcessing,
+	tpidReserved63	[63] NoTpidProcessing,
+	tpidReserved64	[64] NoTpidProcessing,
+	tpidReserved65	[65] NoTpidProcessing,
+	tpidReserved66	[66] NoTpidProcessing,
+	tpidReserved67	[67] NoTpidProcessing,
+	tpidReserved68	[68] NoTpidProcessing,
+	tpidReserved69	[69] NoTpidProcessing,
+	tpidReserved70	[70] NoTpidProcessing,
+	tpidReserved71	[71] NoTpidProcessing,
+	tpidReserved72	[72] NoTpidProcessing,
+	tpidReserved73	[73] NoTpidProcessing,
+	tpidReserved74	[74] NoTpidProcessing,
+	tpidReserved75	[75] NoTpidProcessing,
+	tpidReserved76	[76] NoTpidProcessing,
+	tpidReserved77	[77] NoTpidProcessing,
+	tpidReserved78	[78] NoTpidProcessing,
+	tpidReserved79	[79] NoTpidProcessing,
+	tpidReserved80	[80] NoTpidProcessing,
+	tpidReserved81	[81] NoTpidProcessing,
+	tpidReserved82	[82] NoTpidProcessing,
+	tpidReserved83	[83] NoTpidProcessing,
+	tpidReserved84	[84] NoTpidProcessing,
+	tpidReserved85	[85] NoTpidProcessing,
+	tpidReserved86	[86] NoTpidProcessing,
+	tpidReserved87	[87] NoTpidProcessing,
+	tpidReserved88	[88] NoTpidProcessing,
+	tpidReserved89	[89] NoTpidProcessing,
+	tpidReserved90	[90] NoTpidProcessing,
+	tpidReserved91	[91] NoTpidProcessing,
+	tpidReserved92	[92] NoTpidProcessing,
+	tpidReserved93	[93] NoTpidProcessing,
+	tpidReserved94	[94] NoTpidProcessing,
+	tpidReserved95	[95] NoTpidProcessing,
+	tpidReserved96	[96] NoTpidProcessing,
+	tpidReserved97	[97] NoTpidProcessing,
+	tpidReserved98	[98] NoTpidProcessing,
+	tpidReserved99	[99] NoTpidProcessing,
+	tpidReserved100	[100] NoTpidProcessing,
+	tpidReserved101	[101] NoTpidProcessing,
+	tpidReserved102	[102] NoTpidProcessing,
+	tpidReserved103	[103] NoTpidProcessing,
+	tpidReserved104	[104] NoTpidProcessing,
+	tpidReserved105	[105] NoTpidProcessing,
+	tpidReserved106	[106] NoTpidProcessing,
+	tpidReserved107	[107] NoTpidProcessing,
+	tpidReserved108	[108] NoTpidProcessing,
+	tpidReserved109	[109] NoTpidProcessing,
+	tpidReserved110	[110] NoTpidProcessing,
+	tpidReserved111	[111] NoTpidProcessing,
+	tpidReserved112	[112] NoTpidProcessing,
+	tpidReserved113	[113] NoTpidProcessing,
+	tpidReserved114	[114] NoTpidProcessing,
+	tpidReserved115	[115] NoTpidProcessing,
+	tpidReserved116	[116] NoTpidProcessing,
+	tpidReserved117	[117] NoTpidProcessing,
+	tpidReserved118	[118] NoTpidProcessing,
+	tpidReserved119	[119] NoTpidProcessing,
+	tpidReserved120	[120] NoTpidProcessing,
+	tpidReserved121	[121] NoTpidProcessing,
+	tpidReserved122	[122] NoTpidProcessing,
+	tpidReserved123	[123] NoTpidProcessing,
+	tpidReserved124	[124] NoTpidProcessing,
+	tpidReserved125	[125] NoTpidProcessing,
+	tpidReserved126	[126] NoTpidProcessing,
+	tpidReserved127	[127] NoTpidProcessing
+	}
+
+NoTpidProcessing::=BIT STRING (SIZE(1)) 
+
+ShortMsgBcPDU::=SEQUENCE{
+	destAddress	VarLengthNumber, -- that is PSID / ITS-AID
+	tExtensions	ShortMsgTextensions OPTIONAL
+	}
+
+-- Payload length and data
+ShortMsgData::=OCTET STRING
+ -- maximum size is given by access technology
+
+
+-- transport extensions
+-- Sequence of 0 to n T-Extension elements
+ShortMsgTextensions::=SEQUENCE OF ShortMsgTextension
+
+-- a single T-Extension element
+ShortMsgTextension::= Extension{{ShortMsgTextTypes}}
+
+-- all available T-Extensions
+-- none is defined so far. Once a single one is defined, the below DummyExtension can be removed
+ShortMsgTextTypes EXT-TYPE::={
+	{ DummyExtension	IDENTIFIED BY c-Reserved },
+	...
+	}
+
+DummyExtension ::= NULL
+
+END
+--OSS.PDU TCI-16093.TSI16093Event>--
+TCI-16093
+DEFINITIONS AUTOMATIC TAGS ::= 
+BEGIN
+
+IMPORTS
+Exception,
+Response, 
+MsgID FROM TCI-CommonTypes
+
+SetInitialState, 
+SetWsmTxInfo, 
+StartWsmTx, 
+StopWsmTx, 
+StartWsmRx, 
+StopWsmRx, 
+StartWsaTxPerdiodic, 
+StopWsaTxPeriodic, 
+AddWsaProviderService, 
+ChangeWsaProviderService,
+DelWsaProviderService, 
+AddUserService,
+DelUserService FROM TCI-wsm
+
+GetIPv6InterfaceInfo, 
+SetIPv6Address, 
+StartIPv6Ping,
+StopIPv6Ping FROM TCI-ip
+
+ResponseInfo FROM TCI-responseInfo
+
+Indication FROM TCI-indication
+
+;
+
+TCI16093 ::= CHOICE{
+	request			[0]	Dot3Request,
+	response		[1]	Response,
+	indication 		[2] Dot3Indication,
+	responseInfo	[3]	Dot3ResponseInfo,
+	exception		[4] Exception,
+	...
+	} 
+
+Dot3Request ::=  SEQUENCE {
+   messageId   DOT3-MESSAGE-ID-AND-TYPE.&id({Dot3MessageTypes}),
+   value       DOT3-MESSAGE-ID-AND-TYPE.&Type({Dot3MessageTypes}{@.messageId}),
+   ...
+   }
+
+DOT3-MESSAGE-ID-AND-TYPE ::= CLASS {
+   &id    MsgID UNIQUE,
+   &Type
+   } WITH SYNTAX {&Type IDENTIFIED BY &id}
+
+Dot3MessageTypes DOT3-MESSAGE-ID-AND-TYPE ::= {
+-- imported from TCI-wsm module
+	{ SetInitialState	IDENTIFIED BY dot3SetInitialState } |
+	{ Dot3SetWsmTxInfo IDENTIFIED BY dot3SetWsmTxInfo} |
+	{ Dot3StartWsmTx IDENTIFIED BY dot3StartWsmTx} |
+	{ StopWsmTx IDENTIFIED BY dot3StopWsmTx} |
+	{ StartWsaTxPerdiodic IDENTIFIED BY dot3StartWsaTxPerdiodic} |
+	{ StopWsaTxPeriodic IDENTIFIED BY dot3StopWsaTxPeriodic} |
+	{ StartWsmRx IDENTIFIED BY dot3StartWsmRx} |
+	{ StopWsmRx IDENTIFIED BY dot3StopWsmRx} |
+	{ AddWsaProviderService IDENTIFIED BY dot3AddWsaProviderService} |
+	{ ChangeWsaProviderService IDENTIFIED BY dot3ChangeWsaProviderService} |
+	{ DelWsaProviderService IDENTIFIED BY dot3DelWsaProviderService} |
+	{ AddUserService IDENTIFIED BY dot3AddUserService} |
+	{ DelUserService IDENTIFIED BY dot3DelUserService} |
+-- imported from TCI-ip module
+	{ GetIPv6InterfaceInfo IDENTIFIED BY dot3GetIpv6InterfaceInfo} |
+	{ SetIPv6Address IDENTIFIED BY dot3SetIpv6Address} |
+	{ StartIPv6Ping IDENTIFIED BY dot3StartIpv6Ping} |
+	{ StopIPv6Ping IDENTIFIED BY dot3StopIpv6Ping}
+}
+
+dot3SetInitialState     					MsgID ::= 1
+dot3SetWsmTxInfo     						MsgID ::= 2
+dot3StartWsmTx     							MsgID ::= 3
+dot3StopWsmTx		     					MsgID ::= 4
+dot3StartWsaTxPerdiodic     				MsgID ::= 5
+dot3StopWsaTxPeriodic     					MsgID ::= 6
+dot3StartWsmRx     							MsgID ::= 7
+dot3StopWsmRx     							MsgID ::= 8
+dot3AddWsaProviderService		    		MsgID ::= 9
+dot3ChangeWsaProviderService				MsgID ::= 10
+dot3DelWsaProviderService		    		MsgID ::= 11
+dot3AddUserService							MsgID ::= 12
+dot3DelUserService							MsgID ::= 13
+dot3GetIpv6InterfaceInfo					MsgID ::= 14
+dot3SetIpv6Address							MsgID ::= 15
+dot3StartIpv6Ping							MsgID ::= 16
+dot3StopIpv6Ping							MsgID ::= 17
+
+/* 
+    Request Messages
+
+	SetInitialState, 
+--	SetWsmTxInfo, 
+--	StartWsmTx, 
+	StopWsmTx, 
+	StartWsmRx, 
+	StopWsmRx, 
+	StartWsaTxPerdiodic, 
+	StopWsaTxPeriodic, 
+	AddWsaProviderService, 
+	ChangeWsaProviderService,
+	DelWsaProviderService, 
+	AddUserService, 
+	DelUserService FROM TCI-wsm
+*/
+
+
+Dot3SetWsmTxInfo ::= SetWsmTxInfo (WITH COMPONENTS {
+	psid,
+	radio,
+	security,
+	channelIdentifier,
+	timeslot,
+	dataRate,
+	transmitPowerLevel,
+	infoElementsIncluded,
+	userPriority,
+	destinationMACAddr ('FFFFFFFFFFFF'H),
+	expiryTime	ABSENT,
+	channelLoad	ABSENT,
+	repeatRate ABSENT,
+	payload ABSENT
+})
+
+Dot3StartWsmTx ::= StartWsmTx (WITH COMPONENTS {
+	psid,
+	radio,
+	repeatRate,
+	payload	PRESENT
+})
+
+/* 
+   Indication Messages
+*/
+
+Dot3Indication ::= Indication (WITH COMPONENTS {
+	radio,
+	event (	e16093PktRx | 
+			eWsmPktRx | 
+			eIpv6PktRx | 
+			eIcmp6PktRx | 
+			eIpv6ConfigChanged | 
+			eDot3ChannelAssigned | 
+			eDot3RequestMatchedAvailAppService | 
+			eDot2VerificationCompleteWithResult | 
+			exception),
+	eventParams	(WITH COMPONENTS {service} |
+				 WITH COMPONENTS {wsm} |
+				 WITH COMPONENTS {ip} |
+				 WITH COMPONENTS {security}
+				 ) OPTIONAL,
+	pdu	OPTIONAL,
+	exception OPTIONAL
+	})
+
+/* 
+   ResponseInfo Messages
+*/
+
+Dot3ResponseInfo ::= ResponseInfo (WITH COMPONENTS {
+	msgID,	
+	resultCode,
+	info (WITH COMPONENTS {ipv6InterfaceInfo}  ) OPTIONAL, -- if exception reported, no InfoContent provided
+	exception OPTIONAL
+	})
+
+END
+TCI-16094
+DEFINITIONS AUTOMATIC TAGS ::= 
+BEGIN
+
+IMPORTS
+Response, 
+Exception, 
+MsgID FROM TCI-CommonTypes
+
+SetInitialState, 
+SetWsmTxInfo, 
+StartWsmTx, 
+StopWsmTx, 
+StartWsmRx, 
+StopWsmRx FROM TCI-wsm
+
+AddTxProfile,
+DelTxProfile,
+GetIPv6InterfaceInfo, 
+StartIPv6Tx, 
+StopIPv6Tx, 
+StartIPv6Rx, 
+StopIPv6Rx, 
+SetIPv6Address, 
+StartIPv6Ping,
+StopIPv6Ping FROM TCI-ip
+
+ResponseInfo, 
+Ipv6InterfaceInfo FROM TCI-responseInfo
+
+Indication FROM TCI-indication
+
+;
+
+TCI16094 ::= CHOICE{
+    request         [0] Dot4Request,
+    response        [1] Response,
+    indication      [2] Dot4Indication,
+    responseInfo    [3] Dot4ResponseInfo,
+    exception       [4] Exception,
+    ...
+    } 
+
+Dot4Request ::=  SEQUENCE {
+   messageId   DOT4-MESSAGE-ID-AND-TYPE.&id({Dot4MessageTypes}),
+   value       DOT4-MESSAGE-ID-AND-TYPE.&Type({Dot4MessageTypes}{@.messageId}),
+   ...
+   }
+
+DOT4-MESSAGE-ID-AND-TYPE ::= CLASS {
+   &id    MsgID UNIQUE,
+   &Type
+   } WITH SYNTAX {&Type IDENTIFIED BY &id}
+
+Dot4MessageTypes DOT4-MESSAGE-ID-AND-TYPE ::= {
+-- imported from TCI-wsm
+	{ SetInitialState IDENTIFIED BY dot4SetInitialState} |
+	{ Dot4SetWsmTxInfo IDENTIFIED BY dot4SetWsmTxInfo} |
+	{ Dot4StartWsmTx IDENTIFIED BY dot4StartWsmTx} |
+	{ StopWsmTx IDENTIFIED BY dot4StopWsmTx} |
+	{ StartWsmRx IDENTIFIED BY dot4StartWsmRx} |
+	{ StopWsmRx IDENTIFIED BY dot4StopWsmRx} |
+-- imported from TCI-ip module
+	{ GetIPv6InterfaceInfo IDENTIFIED BY dot4GetIpv6InterfaceInfo} |
+	{ SetIPv6Address IDENTIFIED BY dot4SetIpv6Address} |
+	{ StartIPv6Tx IDENTIFIED BY dot4StartIPv6Tx} |
+	{ StopIPv6Tx IDENTIFIED BY dot4StopIPv6Tx} |
+	{ StartIPv6Rx IDENTIFIED BY dot4StartIPv6Rx} |
+	{ StopIPv6Rx IDENTIFIED BY dot4StopIPv6Rx} |
+	{ StartIPv6Ping IDENTIFIED BY dot4StartIpv6Ping} |
+	{ StopIPv6Ping IDENTIFIED BY dot4StopIpv6Ping} |
+	{ AddTxProfile IDENTIFIED BY dot4AddTxProfile} |
+	{ DelTxProfile IDENTIFIED BY dot4DelTxProfile} 
+}
+
+dot4SetInitialState     	MsgID ::= 1
+dot4SetWsmTxInfo     		MsgID ::= 2
+dot4StartWsmTx     			MsgID ::= 3
+dot4StopWsmTx		     	MsgID ::= 4
+dot4StartWsmRx     			MsgID ::= 5
+dot4StopWsmRx     			MsgID ::= 6
+dot4GetIpv6InterfaceInfo	MsgID ::= 7
+dot4SetIpv6Address			MsgID ::= 8
+dot4StartIPv6Tx				MsgID ::= 9
+dot4StopIPv6Tx				MsgID ::= 10
+dot4StartIPv6Rx				MsgID ::= 11
+dot4StopIPv6Rx				MsgID ::= 12
+dot4StartIpv6Ping			MsgID ::= 13
+dot4StopIpv6Ping			MsgID ::= 14
+dot4AddTxProfile			MsgID ::= 15
+dot4DelTxProfile			MsgID ::= 16
+
+/* 
+   Request Messages
+
+    SetInitialState, 
+    SetWsmTxInfo, 
+    StartWsmTx, 
+    StopWsmTx, 
+    StartWsmRx, 
+    StopWsmRx FROM TCI-wsm
+
+    AddTxProfile,
+    DelTxProfile,
+    GetIPv6InterfaceInfo, 
+    StartIPv6Tx, 
+    StopIPv6Tx, 
+    StartIPv6Rx, 
+    StopIPv6Rx, 
+    SetIPv6Address, 
+    StartIPv6Ping,
+    StopIPv6Ping FROM TCI-ip
+*/
+
+Dot4SetWsmTxInfo ::= SetWsmTxInfo (WITH COMPONENTS {
+    psid,
+    radio,
+    security,
+    channelIdentifier,
+    timeslot,
+    dataRate,
+    transmitPowerLevel,
+    infoElementsIncluded,
+    userPriority,
+    destinationMACAddr ('FFFFFFFFFFFF'H),
+    expiryTime  ABSENT,
+    channelLoad ABSENT,
+    repeatRate ABSENT,
+    payload ABSENT
+})
+
+Dot4StartWsmTx ::= StartWsmTx (WITH COMPONENTS {
+    psid,
+    radio,
+    repeatRate,
+    payload PRESENT
+})
+
+/* 
+   Indication Messages
+*/
+
+Dot4Indication ::= Indication (WITH COMPONENTS {
+    radio,
+    event ( e16093PktRx | 
+            eWsmPktRx | 
+            eIpv6PktRx | 
+            eIcmp6PktRx | 
+            eIpv6ConfigChanged | 
+            eDot3ChannelAssigned | 
+            eDot3RequestMatchedAvailAppService | 
+            exception),
+    eventParams (WITH COMPONENTS {service} |
+                 WITH COMPONENTS {wsm} |
+                 WITH COMPONENTS {ip}
+                 ) OPTIONAL,
+    pdu OPTIONAL,
+    exception OPTIONAL
+    })
+
+/* 
+   ResponseInfo Messages
+*/
+
+Dot4ResponseInfo ::= ResponseInfo (WITH COMPONENTS {
+    msgID,  
+    resultCode,
+    info (WITH COMPONENTS {ipv6InterfaceInfo}  ) OPTIONAL, -- if exception reported, no InfoContent provided
+    exception OPTIONAL
+    })
+
+END
+--Purpose: Exercise J2945/1 compliant devices by testing the transmission of all possible BSM configurations,
+--         Assist J2945/1 testing by providing easy access to VehicleEventFlags, 
+--         Assist J2945/1 testing by toggling required but test-interfering aspects of the IUT (GPS, Congestion Control, BSM Transmission). 
+--         This ASN file IS NOT INTENDED to replace in-vehicle testing
+
+--Notes: All value bounds in this document are taken directly from the SAE J2735-2016 standard. Information on the rationale and units of the values can be found in the J2735 standards.
+
+TCI-29451
+
+DEFINITIONS AUTOMATIC TAGS ::= 
+BEGIN
+
+IMPORTS
+Response, 
+Exception, 
+Time64,
+MsgID FROM TCI-CommonTypes
+
+SetInitialState,
+-- SetWsmTxInfo, 
+StartWsmTx, 
+StopWsmTx,
+StartWsmRx, 
+StopWsmRx  FROM TCI-wsm
+
+Indication FROM TCI-indication
+
+EnableGpsInput, 
+SetLatitude, 
+SetLongitude, 
+SetElevation, 
+SetPositionalAccuracy, 
+SetSpeed, 
+SetHeading, 
+SetAccelerationSet4Way, 
+SetGpsTime  FROM TCI-SutControl
+;
+
+TCI29451 ::= CHOICE{
+    request         [0] D2945Request,
+    response        [1] Response,
+    indication      [2] D2945Indication,
+--  responseInfo    [3] ResponseInfo,
+    exception       [4] Exception,
+    ...
+} 
+
+D2945Request ::=  SEQUENCE {
+    messageId   D2945-MESSAGE-ID-AND-TYPE.&id({D2945MessageTypes}),
+    value       D2945-MESSAGE-ID-AND-TYPE.&Type({D2945MessageTypes}{@.messageId}),
+    ...
+}
+
+D2945-MESSAGE-ID-AND-TYPE ::= CLASS {
+    &id    MsgID UNIQUE,
+    &Type
+} WITH SYNTAX {&Type IDENTIFIED BY &id}
+
+D2945MessageTypes D2945-MESSAGE-ID-AND-TYPE ::= {
+    { SetInitialState IDENTIFIED BY setInitialState} |
+    { StartBsmTx IDENTIFIED BY startBsmTx} |
+    { StopBsmTx IDENTIFIED BY stopBsmTx} |
+    { EnableCongestionMitigation IDENTIFIED BY enableCongestionMitigation} |
+
+    { SetTemporaryID IDENTIFIED BY setTemporaryID} |
+    { SetTransmissionState IDENTIFIED BY setTransmissionState} |
+    { SetSteeringWheelAngle IDENTIFIED BY setSteeringWheelAngle} |
+    { SetBrakeSystemStatus IDENTIFIED BY setBrakeSystemStatus} |
+    { SetVehicleSize IDENTIFIED BY setVehicleSize} |
+    { SetExteriorLights IDENTIFIED BY setExteriorLights} |
+    { SetVehicleEventFlags IDENTIFIED BY setVehicleEventFlags} |
+    { StartBsmRx IDENTIFIED BY startBsmRx} |
+    { StopBsmRx IDENTIFIED BY stopBsmRx} |
+
+    { EnableGpsInput IDENTIFIED BY d2945EnableGpsInput} |
+    { SetLatitude IDENTIFIED BY d2945SetLatitude} |
+    { SetLongitude IDENTIFIED BY d2945SetLongitude} |
+    { SetElevation IDENTIFIED BY d2945SetElevation} |
+    { SetPositionalAccuracy IDENTIFIED BY d2945SetPositionalAccuracy} |
+    { SetSpeed IDENTIFIED BY d2945SetSpeed} |
+    { SetHeading IDENTIFIED BY d2945SetHeading} |
+    { SetAccelerationSet4Way IDENTIFIED BY d2945SetAccelerationSet4Way} |
+    { SetGpsTime IDENTIFIED BY d2945SetGpsTime}
+}
+
+setInitialState                     MsgID ::= 1
+d2945EnableGpsInput                      MsgID ::= 2	    -- deprecated, moved to SutControl
+startBsmTx                          MsgID ::= 3
+stopBsmTx                           MsgID ::= 4
+enableCongestionMitigation          MsgID ::= 5
+
+setTemporaryID                      MsgID ::= 6
+d2945SetLatitude                         MsgID ::= 7	    -- deprecated, moved to SutControl
+d2945SetLongitude                        MsgID ::= 8	    -- deprecated, moved to SutControl
+d2945SetElevation                        MsgID ::= 9	    -- deprecated, moved to SutControl
+d2945SetPositionalAccuracy               MsgID ::= 10	-- deprecated, moved to SutControl
+setTransmissionState                MsgID ::= 11
+d2945SetSpeed                            MsgID ::= 12	-- deprecated, moved to SutControl
+d2945SetHeading                          MsgID ::= 13	-- deprecated, moved to SutControl
+setSteeringWheelAngle               MsgID ::= 14
+d2945SetAccelerationSet4Way              MsgID ::= 15	-- deprecated, moved to SutControl
+setBrakeSystemStatus                MsgID ::= 16
+setVehicleSize                      MsgID ::= 17
+setExteriorLights                   MsgID ::= 18
+setVehicleEventFlags                MsgID ::= 19
+startBsmRx                          MsgID ::= 20
+stopBsmRx                           MsgID ::= 21
+d2945SetGpsTime                          MsgID ::= 22	-- deprecated, moved to SutControl
+
+
+StartBsmTx ::= StartWsmTx (WITH COMPONENTS {
+    psid  (WITH COMPONENTS {content (32)}),
+    radio,
+    repeatRate,
+    payload ABSENT      -- Assumes BSM payload is generated by the SUT
+})
+
+StopBsmTx ::= StopWsmTx (WITH COMPONENTS {
+    psid (WITH COMPONENTS {content  (32)})
+})
+
+StartBsmRx ::= StartWsmRx (WITH COMPONENTS {
+    psid   (WITH COMPONENTS {content    (32)}), -- PSID is optional if eventHandling.rxFlag is set to receive any WSM with PSID
+    radio ( WITH COMPONENTS { ..., antenna ABSENT }),
+    channelIdentifier (172),        -- default value for BSM
+    timeSlot (continuous),          -- default value for BSM
+    eventHandling
+    })
+
+StopBsmRx ::= StopWsmRx (WITH COMPONENTS {
+        psid (WITH COMPONENTS {content  (32)})
+    })
+
+EnableCongestionMitigation ::= BOOLEAN
+    
+SetTemporaryID ::= OCTET STRING (SIZE(4))
+
+SetTransmissionState ::= ENUMERATED {
+    neutral         (0),
+    park            (1),
+    forwardGears    (2),
+    reverseGears    (3),
+    reserved1       (4),
+    reserved2       (5),
+    reserved3       (6),   
+    unavailable     (7)
+}
+
+SetSteeringWheelAngle ::= INTEGER (-126 .. 127)
+
+SetBrakeSystemStatus ::= SEQUENCE {
+    brakeAppliedStatus       BIT STRING {
+        unavailable (0),
+        leftFront   (1),
+        leftRear    (2),
+        rightFront  (3),
+        rightRear   (4)
+    },
+    tractionControlStatus    ENUMERATED {
+        unavailable (0),
+        off         (1),
+        on          (2),
+        engaged     (3)
+    },
+    antiLockBrakeStatus      ENUMERATED {
+        unavailable (0),
+        off         (1),
+        on          (2),
+        engaged     (3)
+    },
+    stabilityControlStatus   ENUMERATED {
+        unavailable (0),
+        off         (1),
+        on          (2),
+        engaged     (3)
+    },
+    brakeBoostApplied        ENUMERATED {
+        unavailable (0),
+        off         (1),
+        on          (2)
+    },
+    auxiliaryBrakeStatus     ENUMERATED {
+        unavailable (0),
+        off         (1),
+        on          (2),
+        reserved    (3)
+    }
+}
+
+SetVehicleSize ::= SEQUENCE{
+    vehicleWidth     INTEGER(0 .. 1023),
+    vehicleLength    INTEGER(0 .. 4095)
+}
+
+SetVehicleEventFlags ::= BIT STRING {
+    eventHazardLights               (0),
+    eventStopLineViolation          (1),
+    eventABSactivated               (2),
+    eventTractionControlLoss        (3),
+    eventStabilityControlActivated  (4),
+    eventHazardousMaterials         (5),
+    eventReserved1                  (6),
+    eventHardBraking                (7),
+    eventLightsChanged              (8),
+    eventWipersChanged              (9),
+    eventFlatTire                   (10),
+    eventDisabledVehicle            (11),
+    eventAirBagDeployment           (12)
+}
+
+SetExteriorLights ::= BIT STRING
+{
+   lowBeamHeadlightsOn       (0), 
+   highBeamHeadlightsOn      (1), 
+   leftTurnSignalOn          (2), 
+   rightTurnSignalOn         (3), 
+   hazardSignalOn            (4), 
+   automaticLightControlOn   (5),
+   daytimeRunningLightsOn    (6), 
+   fogLightOn                (7), 
+   parkingLightsOn           (8) 
+}
+
+
+/* 
+   Indication Messages
+*/
+
+D2945Indication ::= Indication (WITH COMPONENTS {
+    radio,
+    event ( eWsmPktRx |
+        exception),
+    eventParams (WITH COMPONENTS {wsm}
+                 ) OPTIONAL,
+    pdu   OPTIONAL,
+    exception OPTIONAL
+})
+
+END
+TCI-80211
+DEFINITIONS AUTOMATIC TAGS ::= 
+BEGIN
+
+IMPORTS
+Response, 
+Exception, 
+MsgID FROM TCI-CommonTypes
+
+SetInitialState,
+SetWsmTxInfo,
+StartWsmTx, 
+StopWsmTx, 
+StartWsmRx, 
+StopWsmRx  FROM TCI-wsm
+
+Indication FROM TCI-indication
+;
+
+TCI80211 ::= CHOICE{
+	request			[0]	Dot11Request,
+	response		[1]	Response,
+	indication 		[2] Dot11Indication,
+--	responseInfo	[3]	Dot11ResponseInfo,
+	exception		[4] Exception,
+	...
+	} 
+
+Dot11Request ::=  SEQUENCE {
+   messageId   DOT11-MESSAGE-ID-AND-TYPE.&id({Dot11MessageTypes}),
+   value       DOT11-MESSAGE-ID-AND-TYPE.&Type({Dot11MessageTypes}{@.messageId}),
+   ...
+   }
+
+
+DOT11-MESSAGE-ID-AND-TYPE ::= CLASS {
+   &id    MsgID UNIQUE,
+   &Type
+   } WITH SYNTAX {&Type IDENTIFIED BY &id}
+
+
+Dot11MessageTypes DOT11-MESSAGE-ID-AND-TYPE ::= {
+-- imported from TCI-wsm
+	{ SetInitialState IDENTIFIED BY dot11SetInitialState} |
+	{ Dot11SetWsmTxInfo IDENTIFIED BY dot11SetWsmTxInfo} |
+	{ Dot11StartWsmTx IDENTIFIED BY dot11StartWsmTx} |
+	{ StopWsmTx IDENTIFIED BY dot11StopWsmTx} |
+	{ StartWsmRx IDENTIFIED BY dot11StartWsmRx} |
+	{ StopWsmRx IDENTIFIED BY dot11StopWsmRx}
+}
+
+dot11SetInitialState     	MsgID ::= 1
+dot11SetWsmTxInfo			MsgID ::= 2
+dot11StartWsmTx				MsgID ::= 3
+dot11StopWsmTx				MsgID ::= 4
+dot11StartWsmRx				MsgID ::= 5
+dot11StopWsmRx				MsgID ::= 6
+
+/* 
+    Request Messages
+
+	SetInitialState, 
+	SetWsmTxInfo, 
+	StartWsmTx, 
+	StopWsmTx, 
+	StartWsmRx, 
+	StopWsmRx FROM TCI-wsm
+
+*/
+
+Dot11SetWsmTxInfo ::= SetWsmTxInfo (WITH COMPONENTS {
+	psid,
+	radio,
+	security,
+	channelIdentifier,
+	timeslot,
+	dataRate,
+	transmitPowerLevel,
+	infoElementsIncluded,
+	userPriority,
+	destinationMACAddr ('FFFFFFFFFFFF'H),
+	expiryTime	ABSENT,
+	channelLoad	ABSENT,
+	repeatRate ABSENT,
+	payload ABSENT
+})
+
+Dot11StartWsmTx ::= StartWsmTx (WITH COMPONENTS {
+	psid,
+	radio,
+	repeatRate,
+	payload	PRESENT
+})
+
+Dot11Indication ::= Indication (WITH COMPONENTS {
+	radio,
+	event (e80211PktRx),
+	eventParams	(WITH COMPONENTS {d80211frame} ) OPTIONAL,
+	pdu	OPTIONAL,
+	exception OPTIONAL
+	})
+
+END
+TCI-CommonTypes
+DEFINITIONS AUTOMATIC TAGS ::=
+BEGIN
+
+IMPORTS
+VarLengthNumber FROM CITSapplMgmtIDs {iso(1) standard(0) cits-applMgmt (17419) ids (1) version1 (1)} -- this is the p-encoded PSID
+;
+
+PduData ::= Opaque
+PduType ::= ENUMERATED {
+    reserved            (0),
+    d80211frame         (1),    -- 802.11 frame (802.11 header, MAC header) // DEPRECATED. Use d16093payload instead
+    d16093frame         (2),    -- WSM frame, including WSM header & payload  // DEPRECATED. Use d16093payload instead
+    d16092data          (3),    -- Ieee1609Data including 1609.3 payload
+    d16093payload       (4),    -- 1609.3 payload excluding security header/footer
+    dIpv6payload        (5)     -- Ipv6 payload
+}
+
+Opaque ::= OCTET STRING(SIZE(0..2304))
+HashedId8  ::= OCTET STRING (SIZE(8))
+
+/*
+   Response Messages with simple Result
+*/
+
+Response ::= SEQUENCE {
+    msgID               MsgID,
+    resultCode          ResultCode,
+    exception           Exception OPTIONAL,
+    ...
+}
+
+ResultCode ::= ENUMERATED {
+    rcSuccess (0), -- success
+    rcFailure (1)  -- failure
+}
+
+/*
+    Exception Messages
+*/
+Exception ::= SEQUENCE{
+    type        ExceptionType,
+    id          ExceptionId OPTIONAL,
+    module      Module OPTIONAL,
+    description ExceptionText OPTIONAL,
+    ...
+}
+
+ExceptionType   ::= ENUMERATED{
+    info        (0), -- all info messages
+    warning     (1), -- all warnings
+    error       (2)  -- all errors
+}
+
+Module ::= UTF8String (SIZE(0..255))
+-- Function/Module reporting an exception
+
+ExceptionId ::= ENUMERATED {
+ reserved (0),
+ critical-error (1),
+ incorrect-parameter-value (2),
+ missing-parameter (3),
+ radio-interface-unavailable (4),
+ ...    -- future exception IDs
+}
+
+ExceptionText ::= UTF8String (SIZE(0..1200))
+-- short description of exception
+
+RadioInterface ::= SEQUENCE{
+    radio       Radio,
+    antenna     Antenna OPTIONAL
+}
+
+Radio ::= ENUMERATED {
+    radio0 (0),
+    radio1 (1),
+    radio2 (2),
+    radio3 (3)
+}
+
+Antenna ::= ENUMERATED {
+    antenna1    (1),
+    antenna2    (2),
+    both        (3)
+}
+
+TimeSlot ::= ENUMERATED {    -- consistent with dot3
+    reserved        (0),
+    alt-slot0       (1),
+    alt-slot1       (2),
+    continuous      (3)
+}
+
+RCPI ::= INTEGER (0..255)
+UserPriority ::= INTEGER(0..7)
+Time64 ::= INTEGER (0..9223372036854775807)
+-- time expressed as the number of milliseconds,
+-- due to ASN.1 limitation in OSS, the highest bit is set to 0
+
+Psid ::= VarLengthNumber
+--IpAddress ::= UTF8String(SIZE(2..255)) ---- text string containing IPv6 (or IPv4 or hostname). Used as a parameter in WSA, IPv6 configuration, etc
+--IpPort ::= INTEGER(0..65535)      ---- UDP port used in WSA, in SetInitialState
+
+RepeatRate ::= INTEGER (0..255) -- Number of messages transmitted per 5sec interval; if set to 0, transmit message one time only
+
+MsgID ::=  INTEGER(0..255)
+
+END
+--<OSS.PDU TCI-MsgDispatcher.TCIMessage>--
+TCI-Dispatcher
+DEFINITIONS AUTOMATIC TAGS ::= 
+BEGIN
+
+IMPORTS
+
+TCI16093            FROM TCI-16093
+TCI16094            FROM TCI-16094
+TCI80211            FROM TCI-80211
+TCI29451            FROM TCI-29451
+TCISutControl       FROM TCI-SutControl
+Time64              FROM TCI-CommonTypes
+
+;
+
+TCIMsg ::= SEQUENCE{
+    version     INTEGER(1),         -- protocol version 1
+    time        Time64,             -- UTC timestamp with milliseconds, GPS syncronized
+    frame       Frame,              -- protocol layer
+    ...
+    }
+
+Frame ::=CHOICE {
+    d16093 [1] TCI16093,
+    --d16092 [2] TCI16092, module is redundant with TCI16093
+    d80211 [3] TCI80211,
+    d16094 [4] TCI16094,
+    d29451 [5] TCI29451,
+    sutCtrl [6] TCISutControl,
+    ...
+}
+
+END
+TCI-eventHandling
+DEFINITIONS AUTOMATIC TAGS ::= 
+BEGIN
+
+IMPORTS
+PduType FROM TCI-CommonTypes
+;
+
+EventHandling   ::= SEQUENCE {
+    rxFlag              RxFlag DEFAULT '000'B,        -- receive packets with matched PSID, or receive all WSMs and ignore PSID
+    eventFlag           EventFlag DEFAULT '00000000'B,-- events to be generated when packet is received, no events is generated by default
+    forwardPdu          PduType OPTIONAL,             -- PDU type to forward to the Test System if rxModeFlag->includePdu is set 1
+    securityFlag        SecurityFlag DEFAULT '0000'B, -- security handling for received packets
+    ...,
+    eventParamsChoice   EventParamsChoice OPTIONAL    -- EventParameters type included in PduEventIndication. Must be specified if RxFlag->includePduParam is set 1
+}
+
+RxFlag ::= BIT STRING {
+    recvPsidMatch       (0),    -- set 0, notify about WSMs with matched PSID, ignore all others
+                                -- set 1, receive all WSMs (ignore PSID filter) i.e. receive all WSMs, WSAs
+    includePdu          (1),    -- if set 1 Pdu is included into PduEventIndication; if set 0, Pdu is not included
+    includePduParam     (2)     -- if set 1 PduParameters is included into PduEventIndication; if set 0, PduParameters is not included
+}
+
+EventFlag ::= BIT STRING {
+    e80211PktRx                     (0),    -- set 1 to be notified when inbound 802.11 frame is received by SUT
+    e16093PktRx                     (1),    -- set 1 to be notified when inbound 1603 frame received SUT
+    eWSM                            (2),    -- set 1 to be notified when WSM received (after PSID match filtering) by SUT
+    eIpv6PktRx                      (3),    -- set 1 to be notified when inbound IPv6 frame received by SUT
+    eIcmp6PktRx                     (4),    -- set 1 to be notified when Icmp echo frame is received by SUT
+    ePsidServiceActive              (5),    -- set 1 to be notified when PSID service is activated (for any PSID) by SUT
+    eWSAServiceActive               (6),    -- set 1 to be notified when PSID service is activated due to incoming WSA (for any /all PSID) by SUT
+    eIpv6ConfigChanged              (7),    -- set 1 to be notified when IPv6 address configuration changed by SUT
+    verificationCompleteWithResult  (8)     -- set 1 to be  notified when message signature verification is complete by SUT
+} 
+
+SecurityFlag ::= BIT STRING {
+    bypassSecurityVerification  (0) -- if set 1, messages received without security verification, if set 0, message security verification performed per security profile
+} (SIZE(4))
+
+
+EventParamsChoice ::= ENUMERATED {
+      service           (0),
+      wsm               (1),
+      ip                (2),
+      d80211frame       (3),
+      security          (4)
+}
+
+END
+TCI-SutControl
+
+DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+IMPORTS
+Response,
+MsgID, 
+Time64,
+Exception FROM TCI-CommonTypes
+
+ResponseInfo FROM TCI-responseInfo
+
+Elevation, 
+Longitude, 
+Latitude  FROM IEEE-1609-3-WEE {iso(1) identified-organization(3) ieee(111) standards-association-numbered-series-standards(2) wave-stds(1609) dot3(3) wee(1) version0(0)}
+;
+
+TCISutControl ::= CHOICE{
+    request         [0] SutRequest,
+    response        [1] Response,
+    responseInfo    [3] SutResponseInfo,
+    exception       [4] Exception,
+    ...
+    } 
+
+SUT-MESSAGE-ID-AND-TYPE ::= CLASS {
+   &id    MsgID UNIQUE,
+   &Type
+   } WITH SYNTAX {&Type IDENTIFIED BY &id}
+
+SutRequest ::=  SEQUENCE {
+   messageId   SUT-MESSAGE-ID-AND-TYPE.&id({SutMessageTypes}),
+   value       SUT-MESSAGE-ID-AND-TYPE.&Type({SutMessageTypes}{@.messageId}),
+   ...
+   }
+
+SutMessageTypes SUT-MESSAGE-ID-AND-TYPE ::= {
+    { Shutdown  IDENTIFIED BY shutdown } |
+    { Restart IDENTIFIED BY restart} |
+    { RequestSutAvailability IDENTIFIED BY requestSutAvailability} |
+    { RequestSutInfo IDENTIFIED BY requestSutInfo} |
+    { SetTestId IDENTIFIED BY setTestId} |
+    
+    { EnableGpsInput IDENTIFIED BY enableGpsInput} |
+    { SetLatitude IDENTIFIED BY setLatitude} |
+    { SetLongitude IDENTIFIED BY setLongitude} |
+    { SetElevation IDENTIFIED BY setElevation} |
+    { SetPositionalAccuracy IDENTIFIED BY setPositionalAccuracy} |
+    { SetSpeed IDENTIFIED BY setSpeed} |
+    { SetHeading IDENTIFIED BY setHeading} |
+    { SetAccelerationSet4Way IDENTIFIED BY setAccelerationSet4Way} |
+    { SetGpsTime IDENTIFIED BY setGpsTime}
+}
+
+shutdown                    MsgID ::= 1
+restart                     MsgID ::= 2
+requestSutAvailability      MsgID ::= 3
+requestSutInfo              MsgID ::= 4
+setTestId                   MsgID ::= 5
+enableGpsInput              MsgID ::= 6
+setLatitude                 MsgID ::= 7
+setLongitude                MsgID ::= 8
+setElevation                MsgID ::= 9
+setPositionalAccuracy       MsgID ::= 10
+setSpeed                    MsgID ::= 11
+setHeading                  MsgID ::= 12
+setAccelerationSet4Way      MsgID ::= 13
+setGpsTime                  MsgID ::= 14
+
+SetTestId ::= UTF8String(SIZE(1..255))
+
+Shutdown ::= BOOLEAN (TRUE)
+
+Restart ::= BOOLEAN (TRUE)
+
+RequestSutAvailability ::= BOOLEAN (TRUE)
+
+RequestSutInfo ::= BOOLEAN (TRUE)
+
+SutResponseInfo ::= ResponseInfo (WITH COMPONENTS {
+    msgID,  
+    resultCode,
+    info (WITH COMPONENTS {sutInfo}  ) OPTIONAL, -- if exception reported, no InfoContent provided
+    exception OPTIONAL
+    })
+
+EnableGpsInput ::= BOOLEAN
+-- True : use GPS sensor to establish SUT position, speed, heading, etc
+-- False: use data provided by TCI messages to set SUT position, speed, heading, etc    
+
+SetGpsTime ::= Time64
+
+SetLatitude ::= Latitude
+
+SetLongitude ::= Longitude
+
+SetElevation ::= Elevation
+
+SetPositionalAccuracy ::= SEQUENCE{
+    semiMajorAxisAccuracy   INTEGER (0 .. 255),
+    semiMinorAxisAccuracy   INTEGER (0 .. 255),
+    semiMajorAxisOrientation   INTEGER (0 .. 65535)
+}
+
+SetSpeed ::= INTEGER (0 .. 8191)
+
+SetHeading ::= INTEGER (0 .. 28800)
+
+SetAccelerationSet4Way ::= SEQUENCE {
+    longAcceleration INTEGER (-2000 .. 2001),
+    latAcceleration INTEGER (-2000 .. 2001),
+    verticalAcceleration INTEGER (-127 .. 127),
+    yawRate INTEGER (-32767 .. 32767)
+}
+    
+END
+--OSS.PDU TCI-16093.TSI16093Event>--
+TCI-indication
+DEFINITIONS AUTOMATIC TAGS ::= 
+BEGIN
+
+IMPORTS
+IPv6Address,
+ChannelNumber80211, 
+TXpower80211, 
+DataRate80211,
+MACaddress FROM IEEE-1609-3-WEE {iso(1) identified-organization(3) ieee(111) standards-association-numbered-series-standards(2) wave-stds(1609) dot3(3) wee(1) version0(0)}
+
+PduType, 
+PduData, 
+RCPI, 
+TimeSlot, 
+RepeatRate, 
+UserPriority, 
+Opaque, 
+HashedId8, 
+Exception, 
+RadioInterface, 
+Psid, 
+Time64,
+--IpAddress, 
+MsgID FROM TCI-CommonTypes
+;
+
+/* 
+   Indication Messages
+*/
+Indication ::= SEQUENCE{
+	radio                   RadioInterface ( WITH COMPONENTS { ..., antenna ABSENT }), 	
+	event					Event,			
+	eventParams				EventParams OPTIONAL,
+	pdu						Pdu OPTIONAL,
+	exception				Exception OPTIONAL,
+	...
+}
+
+Event ::= ENUMERATED {
+	reserved                                                        (0),    -- dummy for the ASN.1 compiler
+	e80211PktRx							(1),	-- set 1 to be notified when 802.11 frame is received
+	e16093PktRx							(2), 	-- inbound 1603 frame received
+	eWsmPktRx							(3), 	-- WSM received (after PSID match filtering)
+	eIpv6PktRx							(4), 	-- inbound IPv6 frame received
+	eIcmp6PktRx							(5),	-- inbound ICMP frame received
+	eIpv6ConfigChanged					(6),	-- IPv6 address configuration changed
+	eDot3ChannelAssigned				(7),	-- Channel assigned as per WME-Notification.indication
+	eDot3RequestMatchedAvailAppService	(8),	-- request matched with available application-service as per WME-Notification.indication
+	eDot2VerificationCompleteWithResult (9),	-- message signature verification is complete
+	dummy10                             (10),   -- dummy for the ASN.1 compiler
+	dummy11                             (11),   -- dummy for the ASN.1 compiler
+	dummy12                             (12),   -- dummy for the ASN.1 compiler
+	dummy13                             (13),   -- dummy for the ASN.1 compiler
+	dummy14                             (14),   -- dummy for the ASN.1 compiler
+	exception							(15) 	-- exception reported from IUT
+}
+
+EventParams ::= CHOICE{
+	service			[0]		ServiceParameters,
+	wsm 		 	[1]  	WsmParameters,
+	ip			 	[2]		IpParameters,
+	d80211frame		[3]		D80211Parameters,
+	security		[4]		SecResultParams,
+	...
+}
+
+Pdu ::= SEQUENCE {
+	pduType		PduType,
+	pduData		PduData,
+	...
+}
+
+ServiceParameters ::= SEQUENCE{ -- used in EventParams
+	psid					SEQUENCE OF Psid,
+	...
+}
+
+WsmParameters ::= SEQUENCE{	-- used in EventParams			
+	psid					Psid,
+	radio					RadioInterface ( WITH COMPONENTS { ..., antenna ABSENT }),
+	wsmpVersion				INTEGER(0..15),
+	channelIdentifier		ChannelNumber80211,
+	-- timeslot				TimeSlot,               //ELIMINATED due to CR implementation
+	dataRate				DataRate80211,
+	receivePowerLevel		TXpower80211,
+	sourceMACAddr			MACaddress,
+	...
+}
+
+IpParameters ::= SEQUENCE{ -- used in EventParams
+	interfaceName			UTF8String(SIZE(1..255)),
+	sourceIPaddress			IPv6Address,
+    protocol                ENUMERATED { tcp, udp, icmpv6 }, -- Upper Layer protocol used for the IPv6 PDU provided in the same TCI indication.
+	...
+}
+
+D80211Parameters ::= SEQUENCE{ -- used in EventParams
+	radio					RadioInterface ( WITH COMPONENTS { ..., antenna ABSENT }),
+	rcpi					RCPI,
+	...
+}
+
+SecResultParams ::= SEQUENCE { -- used in EventParams
+	securityResultCode		SecurityResultCode,
+	description				OCTET STRING OPTIONAL,
+	...
+} 
+
+SecurityResultCode ::= ENUMERATED {		-- from dot3
+	reserved(0),
+	success(1), 
+	inconsistentInputParameters(2), 
+	spduParsingInvalidInput(3), 
+	spduParsingUnsupportedCriticalInformationField(4),
+	spduParsingCertificateNotFound(5), 
+	spduParsingGenerationTimeNotAvailable(6), 
+	spduParsingGenerationLocationNotAvailable(7), 
+	spduCertificateChainNotEnoughInformationToConstructChain(8), 
+	spduCertificateChainChainEndedAtUntrustedRoot(9), 
+	spduCertificateChainChainWasTooLongForImplementation(10), 
+	spduCertificateChainCertificateRevoked(11), 
+	spduCertificateChainOverdueCRL(12), 
+	spduCertificateChainInconsistentExpiryTimes(13), 
+	spduCertificateChainInconsistentStartTimes(14), 
+	spduCertificateChainInconsistentChainPermissions(15), 
+	spduCryptoVerificationFailure(16), 
+	spduConsistencyFutureCertificateAtGenerationTime(17), 
+	spduConsistencyExpiredCertificateAtGenerationTime(18), 
+	spduConsistencyExpiryDateTooEarly(19), 
+	spduConsistencyExpiryDateTooLate(20), 
+	spduConsistencyGenerationLocationOutsideValidityRegion(21), 
+	spduConsistencyNoGenerationLocation(22), 
+	spduConsistencyUnauthorizedPSID(23), 
+	spduInternalConsistencyExpiryTimeBeforeGenerationTime(24), 
+	spduInternalConsistencyextDataHashDoesntMatch(25), 
+	spduInternalConsistencynoExtDataHashProvided(26), 
+	spduInternalConsistencynoExtDataHashPresent(27), 
+	spduLocalConsistencyPSIDsDontMatch(28), 
+	spduLocalConsistencyChainWasTooLongForSDEE(29), 
+	spduRelevanceGenerationTimeTooFarInPast(30), 
+	spduRelevanceGenerationTimeTooFarInFuture(31), 
+	spduRelevanceExpiryTimeInPast(32), 
+	spduRelevanceGenerationLocationTooDistant(33), 
+	spduRelevanceReplayedSpdu(34),
+	spduCertificateExpired (35)
+}
+
+END
+TCI-ip
+DEFINITIONS AUTOMATIC TAGS ::= 
+BEGIN
+
+IMPORTS
+
+EdcaParameterSet,
+DataRate80211,
+TXpower80211, 
+ChannelNumber80211,
+IPv6Address, 
+ServicePort FROM IEEE-1609-3-WEE {iso(1) identified-organization(3) ieee(111) standards-association-numbered-series-standards(2) wave-stds(1609) dot3(3) wee(1) version0(0)}
+
+TimeSlot,
+RepeatRate, 
+Opaque, 
+RadioInterface FROM TCI-CommonTypes
+
+EventHandling FROM TCI-eventHandling
+;
+
+AddTxProfile ::= SEQUENCE{      -- usage per IEEE1609.3-2016 6.2.3.3 Assignments in support of provider service requests; 6.2.3.4 Assignments in support of user service requests
+    radio                   RadioInterface ( WITH COMPONENTS { ..., antenna ABSENT }),
+    channelIdentifier       ChannelNumber80211,         -- for MLMEX-CHSTART.request, MLMEX-REGISTERTXPROFILE.request
+    timeslot                TimeSlot,                   -- for MLMEX-CHSTART.request
+    operationalRateSet      OCTET STRING OPTIONAL,      -- for MLMEX-CHSTART.request; adopted IEEE802.11 definition; note 1609.4 specifies it as INT(1-127) and refers to IEEE802.11
+    edcaParameterSet        EdcaParameterSet OPTIONAL,  -- for MLMEX-CHSTART.request; if omitted use default EDCA set
+    immediateAccess         INTEGER(0..255) OPTIONAL,   -- for MLMEX-CHSTART.request; value 0 indicates immediate access no requested
+    adaptable               BOOLEAN,                    -- for MLMEX-REGISTERTXPROFILE.request
+    transmitPowerLevel      TXpower80211,               -- for MLMEX-REGISTERTXPROFILE.request SUT must convert it into TxPwr_Level INTEGER(1-8) corresponding to IEEE802.11 MIB dot11PhyTxPowerEntry
+    dataRate                DataRate80211,              -- for MLMEX-REGISTERTXPROFILE.request value range INTEGER(2..127) encoded per IEEE802.11 for dot11SupportedDataRatesTxTable
+    ...
+}
+
+DelTxProfile ::= SEQUENCE{      -- usage per IEEE1609.3-2016 6.2.3.6 Ending service channel access assignments
+    radio               RadioInterface ( WITH COMPONENTS { ..., antenna ABSENT }),
+    channelIdentifier   ChannelNumber80211,         -- for MLMEX-CHEND.request, MLMEX-DELETETXPROFILE.request 
+    ...
+}
+
+GetIPv6InterfaceInfo ::= SEQUENCE{
+    radio               RadioInterface ( WITH COMPONENTS { ..., antenna ABSENT }),
+    ...
+}
+
+SetIPv6Address ::= SEQUENCE{        -- WME-AddressChange.request
+    radio               RadioInterface ( WITH COMPONENTS { ..., antenna ABSENT }),
+    interfaceName       UTF8String(SIZE(1..255)),
+    ipAddress           IPv6Address OPTIONAL, 
+    -- optional if the new IPv6 address value must be selected at random
+    ...
+}
+
+IPv6TxRecord ::= SEQUENCE{
+    radio               RadioInterface,
+    interfaceName       UTF8String(SIZE(1..255)),
+    destIpAddress       IPv6Address,
+    destPort            ServicePort OPTIONAL,
+    protocol            ENUMERATED { tcp, udp, icmp },
+    repeatRate          RepeatRate OPTIONAL,
+    eventHandling       EventHandling  (WITH COMPONENTS {..., eventFlag }) OPTIONAL,
+    payload             Opaque OPTIONAL,
+    ...
+}
+
+StartIPv6Tx ::= IPv6TxRecord (WITH COMPONENTS {
+    radio ( WITH COMPONENTS { ..., antenna ABSENT }),
+    interfaceName,
+    destIpAddress,
+    destPort,
+    protocol,
+    repeatRate OPTIONAL,
+    eventHandling OPTIONAL,
+    payload PRESENT
+})
+ 
+StopIPv6Tx ::= IPv6TxRecord (WITH COMPONENTS {
+    radio ( WITH COMPONENTS { ..., antenna ABSENT }),
+    interfaceName,
+    destIpAddress,
+    destPort,
+    protocol,
+    repeatRate ABSENT,
+    eventHandling ABSENT,
+    payload ABSENT
+})
+
+StartIPv6Ping ::= IPv6TxRecord (WITH COMPONENTS {
+    radio,
+    interfaceName,
+    destIpAddress,
+    destPort ABSENT,
+    protocol (icmp),
+    repeatRate OPTIONAL,
+    eventHandling   (WITH COMPONENTS {..., eventFlag ({eIcmp6PktRx}) }),
+    payload ABSENT
+    })
+
+StopIPv6Ping ::= IPv6TxRecord (WITH COMPONENTS {
+    radio ( WITH COMPONENTS { ..., antenna ABSENT }),
+    interfaceName,
+    destIpAddress,
+    destPort ABSENT,
+    protocol (icmp),
+    repeatRate ABSENT,
+    eventHandling ABSENT,
+    payload ABSENT
+})
+
+IPv6RxRecord ::= SEQUENCE{
+    radio               RadioInterface,
+    interfaceName       UTF8String(SIZE(1..255)),
+    listenPort          ServicePort,
+    protocol            ENUMERATED { tcp (0), udp (1) },
+    eventHandling       EventHandling (WITH COMPONENTS {..., eventFlag ({eIpv6PktRx}) }) OPTIONAL,
+    ...
+}
+
+StartIPv6Rx ::= IPv6RxRecord (WITH COMPONENTS {
+    radio,
+    interfaceName,
+    listenPort,
+    protocol,
+    eventHandling PRESENT
+})
+
+StopIPv6Rx ::= IPv6RxRecord ( WITH COMPONENTS {
+    radio ( WITH COMPONENTS { ..., antenna ABSENT }),
+    interfaceName,
+    listenPort,
+    protocol,
+    eventHandling ABSENT
+})
+
+END
+TCI-responseInfo
+DEFINITIONS AUTOMATIC TAGS ::= 
+BEGIN
+
+IMPORTS
+IPv6Address, 
+MACaddress FROM IEEE-1609-3-WEE {iso(1) identified-organization(3) ieee(111) standards-association-numbered-series-standards(2) wave-stds(1609) dot3(3) wee(1) version0(0)}
+
+ResultCode, 
+MsgID, 
+Exception, 
+RadioInterface, 
+--IpAddress, 
+Opaque FROM TCI-CommonTypes
+;
+
+ResponseInfo ::= SEQUENCE {
+    msgID               MsgID,  
+    resultCode          ResultCode,
+    info                InfoContent OPTIONAL, -- if exception reported, no InfoContent provided
+    exception           Exception OPTIONAL,
+    ...
+}
+
+InfoContent::= CHOICE {
+    ipv6InterfaceInfo   [1] Ipv6InterfaceInfo,
+    sutInfo             [2] SutInfo,
+    ...
+}
+
+/*
+    IPv6 Interface Information 
+*/
+
+Ipv6InterfaceInfo ::= SEQUENCE OF SEQUENCE {
+    interfaceName       UTF8String(SIZE(1..255)), -- e.g. "eth0", 
+    ipAddress           SEQUENCE OF IPv6Address, -- linked local, global, etc
+    macAddress          MACaddress, -- MAC address for the network interface
+    defaultGateway      IPv6Address OPTIONAL, -- default gateway IPv6 address (assigned via WSA/WRA)
+    primaryDns          IPv6Address OPTIONAL, -- primary DNS IPv6 address (assigned via WSA/WRA)
+    gatewayMacAddress   MACaddress OPTIONAL, -- gateway Mac address (assigned via WSA/WRA)
+    ...
+}
+
+SutInfo ::= SEQUENCE {
+    modelName       UTF8String(SIZE(1..255)) OPTIONAL,  -- model name if applicable
+    versionInfo     VersionInfoBlock,
+    ...
+}
+
+VersionInfoBlock ::= SEQUENCE OF SEQUENCE {
+    componentType   INTEGER {            -- type of the component, which version is reported
+                        hardware    (0),    
+                        firmware    (1),
+                        software    (2),    -- for any other software
+                        tciapp      (3)     -- for TCI application version
+                        },
+    versionId       UTF8String(SIZE(1..50)),
+    releaseDate     UTF8String(SIZE(1..50)) OPTIONAL,
+    description     UTF8String(SIZE(1..100)) OPTIONAL,   -- description of the component, e.g. BSM protocol stack
+    ...
+}
+
+END
+TCI-wsm
+DEFINITIONS AUTOMATIC TAGS ::= 
+BEGIN
+
+IMPORTS
+AdvertiserIdentifier,
+ProviderServiceContext,
+Extension, 
+MACaddress,
+DataRate80211,
+TXpower80211, 
+ChannelNumber80211  FROM IEEE-1609-3-WEE {iso(1) identified-organization(3) ieee(111) standards-association-numbered-series-standards(2) wave-stds(1609) dot3(3) wee(1) version0(0)}
+
+ServiceInfoExts, 
+ChannelInfos, 
+RoutingAdvertisement FROM IEEE-1609-3-WSA {iso(1) identified-organization(3) ieee(111) standards-association-numbered-series-standards(2) wave-stds(1609) dot3(3) wsa(3) version0(0)}
+
+PduData, 
+PduType, 
+TimeSlot, 
+RepeatRate, 
+UserPriority, 
+Opaque, 
+HashedId8, 
+RadioInterface, 
+Psid, 
+Time64 FROM TCI-CommonTypes
+
+EventHandling FROM TCI-eventHandling --used in StartWsmRx
+;
+
+/* 
+    Request Messages
+*/
+
+SetInitialState ::= BOOLEAN (TRUE)
+
+SetWsmTxInfo ::= SEQUENCE{      -- handled through WSM-WaveShortMessage.request, WME-ChannelService.request     
+    psid                    Psid,
+    radio                   RadioInterface,
+    security                SecurityContext,
+    channelIdentifier       ChannelNumber80211,
+    timeslot                TimeSlot,
+    dataRate                DataRate80211,
+    transmitPowerLevel      TXpower80211,
+    infoElementsIncluded    WaveElementsIncluded DEFAULT '000000000000000000000000'B, -- default no WAVE Extension Info elements included
+    userPriority            UserPriority,
+    destinationMACAddr      MACaddress  DEFAULT 'FFFFFFFFFFFF'H,
+    expiryTime              Time64 OPTIONAL,
+    channelLoad             Opaque OPTIONAL,
+    repeatRate              RepeatRate  OPTIONAL, -- when set to 0 - one shot message, otherwise periodic with RepeatRate per 1609.3
+    payload                 Opaque OPTIONAL,
+    ...
+}
+-- For sending WSMs use SetWsmTxInfo, then StartWsmTx
+-- For sending WSAs use StartWsaTxPerdiodic 
+
+StartWsmTx ::= SEQUENCE{  -- handled through WSM-WaveShortMessage.request
+    psid            Psid,
+    radio           RadioInterface,
+    repeatRate      RepeatRate, -- when set to 0 - one shot message, otherwise periodic with RepeatRate per 1609.3
+    payload         Opaque OPTIONAL,
+    ...
+}
+
+StopWsmTx ::= SEQUENCE{
+    psid        Psid,
+    radio       RadioInterface,
+    ...
+}
+
+StartWsmRx ::= SEQUENCE{    -- uses on WME-WSMService.request; WME-ChannelService used for received WSM on the given channel timeslot with matched PSIDs
+    psid                Psid OPTIONAL, -- PSID is optional if eventHandling.rxFlag is set to receive any WSM with PSID
+    radio               RadioInterface,
+    channelIdentifier   ChannelNumber80211,
+    timeSlot            TimeSlot,
+    eventHandling       EventHandling,
+    ...
+}
+
+StopWsmRx ::= SEQUENCE{
+    psid        Psid OPTIONAL,
+    radio       RadioInterface,
+    ...
+}
+
+StartWsaTxPerdiodic ::= SEQUENCE{   -- creates WSA with one or more PSIDs via WME-ProviderService.request
+    radio                   RadioInterface,
+    destinationMACAddr      MACaddress  DEFAULT 'FFFFFFFFFFFF'H,    
+    wsaChannelIdentifier    ChannelNumber80211,
+    channelAccess           TimeSlot,       
+    repeatRate              RepeatRate,
+    ipService               BOOLEAN,  -- used for WME, not transmitted in WSA
+    security                
+        SecurityContext (WITH COMPONENTS {
+            contentType (mWSA)
+        }),
+    signatureLifetime       INTEGER(10..30000),     -- in milliseconds
+    infoElementIncluded     WaveElementsIncluded DEFAULT '000000000000000000000000'B, -- indicates which extensions to include in WSA. Must be consistent with wsaHdrOptInd 
+        -- if all bits for twoDLocation, threeDLocation, repeatRate set to 0, then WSA Header Wave Info is not included, and WSA Header Option Indicator = 0b0xxx, where x=0 or 1
+        -- if optional wra info (see below) is not included, then WSA Header Option Indicator = 0bxxx0
+    advertiserId            AdvertiserIdentifier OPTIONAL,
+    serviceInfos            WsmServiceInfos,
+    channelinfos            ChannelInfos,
+    wra                     RoutingAdvertisement OPTIONAL,
+    -- if the following parameters omitted, use the default values from the SUT MIB
+    dataRate                DataRate80211 OPTIONAL,
+    userPriority            UserPriority OPTIONAL, 
+    transmitPowerLevel      TXpower80211 OPTIONAL,
+    ...
+}
+
+StopWsaTxPeriodic ::= SEQUENCE{ -- stops WSA and deletes all associated provider services
+    radio       RadioInterface,
+    ...
+}
+
+AddWsaProviderService ::=SEQUENCE{  -- add service to the ProviderServiceRequestTable
+    radio                   RadioInterface, 
+    serviceInfos            WsmServiceInfos,
+    ...
+}
+
+ChangeWsaProviderService ::=SEQUENCE{   -- change service in the ProviderServiceRequestTable
+    radio                   RadioInterface, 
+    serviceInfos            WsmServiceInfos,
+    ...
+}
+
+DelWsaProviderService ::=SEQUENCE{  -- deletes specified service in the ProviderServiceRequestTable
+    radio                   RadioInterface, 
+    serviceInfos            WsmServiceInfos,
+    ...
+}
+
+AddUserService ::= SEQUENCE{    -- register user service via WME-UserService.request
+    psid                    Psid,
+    radio                   RadioInterface,
+    userRequestType         UserRequestType,                -- autojoin on match, vs noSch
+    wsaType                 WsaType,                        -- secure or unsecure
+    providerServiceContext  ProviderServiceContext OPTIONAL,
+    channelIdentifier       ChannelNumber80211 OPTIONAL,    -- desired Sch channel for desired application service
+    sourceMACAddr           MACaddress OPTIONAL,            -- address of the sender of the WSA
+    advertiserId            AdvertiserIdentifier OPTIONAL,  -- optionally sent in the WSA
+    linkQuality             INTEGER OPTIONAL,
+    immediateAccess         INTEGER(0..255) OPTIONAL,       -- duration in sync intervals, value of 0 indicates immediate access not requested
+    wsaChannelIdentifier    ChannelNumber80211 OPTIONAL,    -- channel to listen for WSA, if omitted, use default CCH178
+    channelAccess           TimeSlot OPTIONAL,              -- timeslot to listen for WSA, if omitted, use default Timeslot 0
+    eventHandling           EventHandling,                  -- event handling when service is joined
+    ...
+}
+    
+DelUserService ::= SEQUENCE{
+    psid                    Psid,
+    radio                   RadioInterface,
+    ...
+}
+
+/*
+   Data Types
+*/
+ContentType ::= ENUMERATED {
+    mOther          (0),
+    mIeee16092Data  (1),
+    mWSA            (2),
+    mBSM            (3),
+    mMAP            (4),    
+    mSPAT           (5),        
+    mTIM            (6)
+}
+
+SignerIdentifierType ::= ENUMERATED {
+    unSecure                    (0),
+    useSecProfilePerContentType (1),
+    signIncludeCertificate      (2),
+    signIncludeDigest           (3),
+    ...
+}
+
+SecurityContext ::= SEQUENCE{
+    contentType             ContentType,
+    signerIdentifierType    SignerIdentifierType, 
+    certID                  HashedId8 OPTIONAL,
+    ...
+}
+
+WaveElementsIncluded ::= BIT STRING { -- created based on Table F.1 Allocated WAVE Information Element IDs 1609.3v3D6
+    transmitPowerUsed   (0),    -- WSMP-N-Header
+    twoDLocation        (1),    -- WSA header
+    threeDLocation      (2),    -- WSA header
+    advertiserId        (3),    -- WSA header
+    psc                 (4),    -- WSA Channel Info
+    ipv6Address         (5),    -- WSA Channel Info
+    servicePort         (6),    -- WSA Channel Info
+    providerMacAddress  (7),    -- WSA Channel Info
+    edcaParameterSet    (8),    -- WSA Channel Info
+    secondaryDns        (9),    -- WSA WRA
+    gatewayMacAddress   (10),   -- WSA WRA
+    channelNumber       (11),   -- WSMP-N-Header
+    dataRate            (12),   -- WSMP-N-Header
+    repeatRate          (13),   -- WSA header
+    rcpiThreshold       (14),   -- WSA Service Info
+    wsaCountThreshold   (15),   -- WSA Service Info
+    channelAccess       (16),   -- WSA Channel Info
+    wsaCountThresholdInt (17),  -- WSA Service Info
+    channelLoad         (18)
+} (SIZE(24)) 
+
+UserRequestType ::= INTEGER { -- Used in AddUserService request
+    autoAccessOnMatch (0),
+    noSchAccess(1)
+} (0..1)
+
+WsaType ::= INTEGER {secureWsa (1), unsecureWsa(2)} (1..2)  -- Used in AddUserService request
+
+/*  COPIED from 1609.3 WSA.ASN WITH SOME MODIFICATIONS
+    Dependencies: WSA.ASN, WEE.ASN
+*/
+
+-- Service Info List
+WsmServiceInfos ::= SEQUENCE OF WsmServiceInfo
+
+WsmServiceInfo ::= SEQUENCE {
+    serviceID       Psid, 
+    channelNumber   ChannelNumber80211,
+    chOptions       WsmChannelOptions
+    }
+
+WsmChannelOptions ::= SEQUENCE{        -- type redefinition to be used in ServiceInfo 
+    extensions  ServiceInfoExts OPTIONAL 
+    }
+
+END
