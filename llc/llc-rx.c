@@ -93,30 +93,6 @@ struct ieee80211_qosframe {
     uint8_t i_seq[2];
     uint8_t i_qos[2];
 };
-struct wsm_waveInfo {
-    uint8_t wsm_waveEleID;
-    uint8_t wsm_waveEleLen;
-    // uint8_t wsm_waveEleContents[];
-};
-struct wsmp_nHeader {
-    uint8_t wsmp_general;
-    uint8_t wsmp_countExt;
-    // struct wsm_waveInfo _wsm_waveInfo[];
-    uint8_t wsmp_tpid;
-};
-struct wsmp_tHeader {
-    // uint8_t wsmp_psid[];
-    // uint8_t wsmp_len[]; // 61p
-};
-struct wsm_llcdataframe {
-    struct wsmp_nHeader _wsmp_nHeader;
-    struct wsmp_tHeader _wsmp_tHeader;
-    // uint8_t wsm_data[];
-};
-struct wsm_macdataframe {
-    uint8_t wsm_llc[2];
-    struct wsm_llcdataframe _wsm_llcdataframe;
-};
 struct ieee80211_qosframe *dot11pkHdr;
 
 // Fucntions Definitions
@@ -203,26 +179,95 @@ static tMKxStatus LLC_RxInd (struct MKx *pMKx, tMKxRxPacket *pMsg, void *pPriv) 
 
     printf("\n\n");
     printf("!!! LLC Rx Data RECV !!!\n\n");
-    printf("received data(dot11) : \n");
-    for (int i = 0; i < sizeof(struct ieee80211_qosframe); i++)
-    {
-        printf("%02x ", packet[i]);
-    }
-    printf("\n\n");
-    printf("received data(dot3) : \n");
-    for (int i = sizeof(struct ieee80211_qosframe); i < packet_len; i++)
-    {
-        printf("%02x ", packet[i]);
-    }
-    printf("\n\n");
 
     packet += sizeof(struct ieee80211_qosframe);
     uint8_t *wsm_llc = calloc(1, 2);
+    uint8_t *wsmp_general = calloc(1, 1);
+    uint8_t *wsmp_countExt = calloc(1, 1);
+    uint8_t *wsmp_psid;
+    uint8_t *wsmp_tpid = calloc(1, 1);
+    uint8_t *wsmp_wsmLen;
+
+    uint8_t *ext_test = calloc(1, 1);
+
     wsm_llc = (uint8_t *) packet;
     packet += 2;
 
-    printf("%02x %02x\n", wsm_llc[0], wsm_llc[1]);
+    wsmp_general = (uint8_t *) packet;
+    packet += 1;
 
+    wsmp_countExt = (uint8_t *)packet;
+    packet += 1;
+
+    uint8_t *wsm_waveEleID = calloc(*wsmp_countExt, 1);
+    uint8_t *wsm_waveEleLen = calloc(*wsmp_countExt, 1);
+    uint8_t *wsm_waveEleContent;
+    uint8_t **p_wsm_waveEleContents;
+
+    uint8_t *tmp_packet = packet;
+    uint8_t len_waveInfo = 0;
+
+    for(int i = 0; i < *wsmp_countExt; i++) {
+        wsm_waveEleID = (uint8_t *)tmp_packet;
+        tmp_packet++;
+        wsm_waveEleLen = (uint8_t *)tmp_packet;
+        tmp_packet++;
+        tmp_packet += *wsm_waveEleLen;
+
+        len_waveInfo = len_waveInfo + 2 + *wsm_waveEleLen;
+    }
+
+    packet += len_waveInfo;
+    
+    wsmp_tpid = (uint8_t *)packet;
+    packet++;
+    
+    ext_test = (uint8_t *)packet;
+
+    if(*ext_test / 16 < 8) {
+        wsmp_psid = calloc(1, 1);
+        wsmp_psid = (uint8_t *) packet;
+        packet += 1;
+    } else if (*ext_test / 16 < 11) {
+        wsmp_psid = calloc(1, 2);
+        wsmp_psid = (uint8_t *)packet;
+        packet += 2;
+    } else if (*ext_test / 16 < 14) {
+        wsmp_psid = calloc(1, 3);
+        wsmp_psid = (uint8_t *)packet;
+        packet += 3;
+    } else {
+        wsmp_psid = calloc(1, 4);
+        wsmp_psid = (uint8_t *)packet;
+        packet += 4;
+    }
+
+    ext_test = (uint8_t *)packet;
+    if(*ext_test > 0x7f) {
+        wsmp_wsmLen = calloc(1, 2);
+        wsmp_wsmLen = (uint8_t *) packet;
+        packet += 2;
+    } else {
+        wsmp_wsmLen = calloc(1, 1);
+        wsmp_wsmLen = (uint8_t *)packet;
+        packet += 1;
+    }
+
+    printf("%d\n\n", *wsmp_psid);
+    printf("%d\n\n", *wsmp_wsmLen);
+
+    for (int i = 0; i < pMsg->RxPacketData.RxFrameLength; i++)
+    {
+        printf("%02x ", pMsg->RxPacketData.RxFrame[i]);
+    }
+
+    printf("\n\n");
+
+    for (int i = 0; i < 150; i++) {
+        printf("%02x ", packet[i]);
+    }
+
+    printf("\n\n");
     xer_fprint(stdout, &asn_DEF_TCIMsg, _tci_msg);
     printf("\n\n");
     er = oer_encode_to_buffer(&asn_DEF_TCIMsg, 0, _tci_msg, send_buffer, sizeof(send_buffer));

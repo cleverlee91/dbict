@@ -30,6 +30,37 @@ void setTimeStamp(Time64_t* time64);
 
 pthread_t threads[2];
 
+long radio = 0;
+long timeSlot = 0;
+long channelNumber = 0;
+long dataRate = 0;
+long txPower = 0;
+long psid = 0;
+long repeatRate = 0;
+long priority = 0;
+uint8_t *payload = NULL;
+
+TCIMsg_t *tci_msg;
+TCIMsg_t *_tci_msg;
+
+TCI16093_t _dot3;
+TCI80211_t _11p;
+TCI16094_t _dot4;
+TCI29451_t _j2945;
+TCISutControl_t _sutCtrl;
+
+Response_t _response;
+ResultCode_t _resultCode;
+
+SetWsmTxInfo_t _setWsmTxInfo;
+StartWsmTx_t _startWsmTx;
+Radio_t _radio;
+
+asn_dec_rval_t dec_rval;
+
+Time64_t *_time64;
+long long time_mil;
+
 int main()
 {    
     
@@ -52,22 +83,10 @@ void *ThreadUDPMain(void *arg)
     unsigned char recv_buffer[1024];
     unsigned char send_buffer[1024];
 
-    TCIMsg_t *tci_msg = calloc(1, sizeof(TCIMsg_t));
-    TCIMsg_t *_tci_msg = calloc(1, sizeof(TCIMsg_t));
-    
-    TCI16093_t _dot3;
-    TCI80211_t _11p;
-    TCI16094_t _dot4;
-    TCI29451_t _j2945;
-    TCISutControl_t _sutCtrl;
+    tci_msg = calloc(1, sizeof(TCIMsg_t));
+    _tci_msg = calloc(1, sizeof(TCIMsg_t));
 
-    Response_t _response;
-    ResultCode_t _resultCode;
-
-    asn_dec_rval_t dec_rval;
-
-    Time64_t *_time64 = calloc(1, sizeof(Time64_t));
-    long long time_mil;
+    _time64 = calloc(1, sizeof(Time64_t));
 
     int sock_udp = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -146,7 +165,29 @@ void *ThreadUDPMain(void *arg)
                         break;
                     case Dot11Request__value_PR_Dot11SetWsmTxInfo:
                         printf("--- Set WSM Tx Info...\n\n");
-                        system("/opt/cohda/bin/llc chconfig -s");
+
+                        _setWsmTxInfo = tci_msg->frame.choice.d80211.choice.request.value.choice.Dot11SetWsmTxInfo;
+
+                        asn_INTEGER2long(&_setWsmTxInfo.radio.radio, &radio);
+                        asn_INTEGER2long(&_setWsmTxInfo.timeslot, &timeSlot);
+                        channelNumber = _setWsmTxInfo.channelIdentifier;
+                        dataRate = _setWsmTxInfo.dataRate;
+                        txPower = _setWsmTxInfo.transmitPowerLevel;
+                        priority = _setWsmTxInfo.userPriority;
+
+                        /* code insert */
+                        char instruction[100] = {0};
+                        sprintf(instruction, "%s%s", instruction, "/opt/cohda/bin/llc chconfig -s");
+                        sprintf(instruction, "%s%s", instruction, " -c");
+                        sprintf(instruction, "%s%ld", instruction, channelNumber);
+                        if (timeSlot == 2)
+                            sprintf(instruction, "%s%s", instruction, " -wSCH");
+                        else
+                            sprintf(instruction, "%s%s", instruction, " -wCCH");
+
+                        printf("%s\n",instruction);
+                        
+                        system(instruction);
                         break;
                     case Dot11Request__value_PR_Dot11StartWsmTx:
                         printf("--- Start WSM Tx...\n\n");
@@ -250,13 +291,54 @@ void *ThreadUDPMain(void *arg)
 
 void *ThreadRxMain(void *arg) {
     pthread_detach(pthread_self());
+    system("kill -9 $(pgrep llc)");
     system("/opt/cohda/bin/llc rx");
 }
 
 void *ThreadTxMain(void *arg)
 {
     pthread_detach(pthread_self());
-    system("/opt/cohda/bin/llc test-tx -p 60");
+
+    _startWsmTx = tci_msg->frame.choice.d80211.choice.request.value.choice.Dot11StartWsmTx;
+
+    asn_INTEGER2long(&_startWsmTx.radio.radio, &radio);    
+    switch(_startWsmTx.psid.present) {
+        case 2:
+            if(_startWsmTx.psid.choice.extension.present == 1)
+                psid = _startWsmTx.psid.choice.extension.choice.content;
+            else if (_startWsmTx.psid.choice.extension.present == 2)
+                psid = _startWsmTx.psid.choice.extension.choice.extension.choice.content;
+            break;
+        case 1:
+            psid = _startWsmTx.psid.choice.content;
+            break;
+        case 0:
+            break;
+    }
+    repeatRate = _startWsmTx.repeatRate;
+    payload = calloc(1, _startWsmTx.payload->size);
+    memcpy(payload, _startWsmTx.payload->buf, _startWsmTx.payload->size);
+
+    /* code insert */
+    char instruction[100] = {0};
+    sprintf(instruction, "%s%s", instruction, "/opt/cohda/bin/llc test-tx");
+    sprintf(instruction, "%s%s", instruction, " -c");
+    sprintf(instruction, "%s%ld", instruction, channelNumber);
+    sprintf(instruction, "%s%s", instruction, " -p");
+    sprintf(instruction, "%s%ld", instruction, txPower);
+    sprintf(instruction, "%s%s", instruction, " -E");
+    for (int i = 0; i < _startWsmTx.payload->size; i++)
+    {
+        sprintf(instruction, "%s%02x", instruction, payload[i]);
+    }
+    sprintf(instruction, "%s%s", instruction, " -B");
+    sprintf(instruction, "%s%ld", instruction, psid);
+    sprintf(instruction, "%s%s", instruction, " -r");
+    sprintf(instruction, "%s%ld", instruction, repeatRate);
+
+    printf("%s\n", instruction);
+
+    system(instruction);
 }
 
 void setTimeStamp(Time64_t *time64) {
