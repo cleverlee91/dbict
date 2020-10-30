@@ -10,4 +10,4 @@ TARGET = tcia
 
 .PHONY: $(TARGET)
 $(TARGET):
-	$(CC) tcia.c $(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) -o $@
+	$(CC) tcia.c $(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) -o ./bin/$@
