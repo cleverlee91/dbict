@@ -258,28 +258,33 @@ static tMKxStatus LLC_RxInd (struct MKx *pMKx, tMKxRxPacket *pMsg, void *pPriv) 
 
     ext_test = (uint8_t *)packet;
     int psid_len = 0;
+    int psid_dec = 0;
 
     if(*ext_test / 16 < 8) {
         wsmp_psid = calloc(1, 1);
         wsmp_psid = (uint8_t *) packet;
+        psid_dec = *wsmp_psid;
         psid_len = 1;
         packet += psid_len;
         packet_len -= psid_len;
     } else if (*ext_test / 16 < 11) {
         wsmp_psid = calloc(1, 2);
         wsmp_psid = (uint8_t *)packet;
+        psid_dec = (wsmp_psid[0] - 0x80) * 16 + (wsmp_psid[1] + 0x80);
         psid_len = 2;
         packet += psid_len;
         packet_len -= psid_len;
     } else if (*ext_test / 16 < 14) {
         wsmp_psid = calloc(1, 3);
         wsmp_psid = (uint8_t *)packet;
+        psid_dec = (wsmp_psid[0] - 0xc0) * 256 + (wsmp_psid[1] + 0x40) * 16 + (wsmp_psid[2] + 0x80);
         psid_len = 3;
         packet += psid_len;
         packet_len -= psid_len;
     } else {
         wsmp_psid = calloc(1, 4);
         wsmp_psid = (uint8_t *)packet;
+        psid_dec = (wsmp_psid[0] - 0xe0) * 4096 + (wsmp_psid[1] + 0x80) * 256 + (wsmp_psid[2] + 0x40) * 16 + (wsmp_psid[3] + 0x80);
         psid_len = 4;
         packet += psid_len;
         packet_len -= psid_len;
@@ -401,8 +406,6 @@ static tMKxStatus LLC_RxInd (struct MKx *pMKx, tMKxRxPacket *pMsg, void *pPriv) 
             long _forwardPdu = 0;
             asn_INTEGER2long(_startWsmRx.eventHandling.forwardPdu, &_forwardPdu);
 
-            printf("\n\n!!!! %ld !!!!\n\n", _forwardPdu);
-
             if (rxFlag & 2) {
                 if (rxFlag & 1) {
                     switch (_forwardPdu) {
@@ -451,13 +454,35 @@ static tMKxStatus LLC_RxInd (struct MKx *pMKx, tMKxRxPacket *pMsg, void *pPriv) 
             break;
     }
 
-    printf("--- Send TCI Indication...\n\n");
-
-    xer_fprint(stdout, &asn_DEF_TCIMsg, _tci_msg);
-    printf("\n\n");
+    
 
     enc_rval = oer_encode_to_buffer(&asn_DEF_TCIMsg, 0, _tci_msg, send_buffer, sizeof(send_buffer));
-    sendto(sock_udp, send_buffer, enc_rval.encoded, 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
+    int psid_tci = 0;
+
+    switch (_wsmParameters.psid.present) {
+        case 2:
+            if (_wsmParameters.psid.choice.extension.present == 1)
+                psid_tci = _wsmParameters.psid.choice.extension.choice.content;
+            else if (_wsmParameters.psid.choice.extension.present == 2)
+                psid_tci = _wsmParameters.psid.choice.extension.choice.extension.choice.content;
+            break;
+        case 1:
+            psid_tci = _wsmParameters.psid.choice.content;
+            break;
+        case 0:
+            break;
+    }
+
+    if (psid_dec == psid_tci) {
+        printf("--- Send TCI Indication...\n\n");
+
+        xer_fprint(stdout, &asn_DEF_TCIMsg, _tci_msg);
+        printf("\n\n");
+        sendto(sock_udp, send_buffer, enc_rval.encoded, 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
+    } else {
+        printf("\n\n!!!! Miss Matched Psid !!!!\n\n");
+    }
+        
     return Res;
 }
 

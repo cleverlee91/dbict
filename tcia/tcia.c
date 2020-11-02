@@ -1,4 +1,4 @@
-//------ standard header ------
+//------ standard header --------
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <pthread.h>
 
-//-------- UDP header --------
+//-------- UDP header ----------
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -121,6 +121,8 @@ void *ThreadUDPMain(void *arg)
         enum Frame_PR _framePresent = tci_msg->frame.present;
         enum ResultCode _enumResultCode = ResultCode_rcSuccess;
         enum Dot11Request__value_PR _enumDot11Request;
+        enum Dot3Request__value_PR _enumDot3Request;
+        enum Dot4Request__value_PR _enumDot4Request;
 
         setTimeStamp(_time64);
         asn_long2INTEGER(&_resultCode, _enumResultCode);
@@ -140,6 +142,62 @@ void *ThreadUDPMain(void *arg)
                 _tci_msg->time = *_time64;
                 _tci_msg->frame.present = _framePresent;
                 _tci_msg->frame.choice.d16093 = _dot3;
+
+                _enumDot3Request = _response.msgID;
+                switch (_enumDot3Request) {
+                    case Dot3Request__value_PR_SetInitialState:
+                        printf("--- Set Initial State...\n\n");
+                        break;
+                    case Dot3Request__value_PR_Dot3SetWsmTxInfo:
+                        printf("--- Set WSM Tx Info...\n\n");
+
+                        _setWsmTxInfo = tci_msg->frame.choice.d16093.choice.request.value.choice.Dot3SetWsmTxInfo;
+
+                        asn_INTEGER2long(&_setWsmTxInfo.radio.radio, &radio);
+                        asn_INTEGER2long(&_setWsmTxInfo.timeslot, &timeSlot);
+                        channelNumber = _setWsmTxInfo.channelIdentifier;
+                        dataRate = _setWsmTxInfo.dataRate;
+                        txPower = _setWsmTxInfo.transmitPowerLevel;
+                        priority = _setWsmTxInfo.userPriority;
+
+                        /* code insert */
+                        char instruction[100] = {0};
+                        sprintf(instruction, "%s%s", instruction, "/opt/cohda/bin/llc chconfig -s");
+                        sprintf(instruction, "%s%s", instruction, " -c");
+                        sprintf(instruction, "%s%ld", instruction, channelNumber);
+                        if (timeSlot == 2)
+                            sprintf(instruction, "%s%s", instruction, " -wSCH");
+                        else
+                            sprintf(instruction, "%s%s", instruction, " -wCCH");
+
+                        printf("%s\n", instruction);
+
+                        system(instruction);
+                        break;
+                    case Dot3Request__value_PR_Dot3StartWsmTx:
+                        printf("--- Start WSM Tx...\n\n");
+                        pthread_create(&threads[1], NULL, ThreadTxMain, &_framePresent);
+                        break;
+                    case Dot3Request__value_PR_StopWsmTx:
+                        printf("--- Stop WSM Tx...\n\n");
+                        system("kill -9 $(pgrep llc)");
+                        // pthread_cancel(threads[1]);
+                        break;
+                    case Dot3Request__value_PR_StartWsmRx:
+                        printf("--- Start WSM Rx...\n\n");
+                        FILE *fp = fopen("startRx", "w");
+                        fwrite(recv_buffer, 1, recv_len, fp);
+                        fclose(fp);
+                        pthread_create(&threads[1], NULL, ThreadRxMain, NULL);
+                        break;
+                    case Dot3Request__value_PR_StopWsmRx:
+                        printf("--- Stop WSM Rx...\n\n");
+                        system("kill -9 $(pgrep llc)");
+                        break;
+                    case Dot3Request__value_PR_NOTHING:
+                    default:
+                        break;
+                }
 
                 break;
 
@@ -190,7 +248,7 @@ void *ThreadUDPMain(void *arg)
                         break;
                     case Dot11Request__value_PR_Dot11StartWsmTx:
                         printf("--- Start WSM Tx...\n\n");
-                        pthread_create(&threads[1], NULL, ThreadTxMain, NULL);
+                        pthread_create(&threads[1], NULL, ThreadTxMain, &_framePresent);
                         break;
                     case Dot11Request__value_PR_StopWsmTx:
                         printf("--- Stop WSM Tx...\n\n");
@@ -228,33 +286,19 @@ void *ThreadUDPMain(void *arg)
                 _tci_msg->time = *_time64;
                 _tci_msg->frame.present = _framePresent;
                 _tci_msg->frame.choice.d16094 = _dot4;
-                
-            case Frame_PR_d80211 :
-                printf("!!! 802.11p Request RECV !!!\n\n");
-
-                _response.msgID = tci_msg->frame.choice.d80211.choice.request.messageId;
-                _response.resultCode = _resultCode;
-
-                _11p.present = 2;
-                _11p.choice.response = _response;
-
-                _tci_msg->version = TCI_VER;
-                _tci_msg->time = *_time64;
-                _tci_msg->frame.present = _framePresent;
-                _tci_msg->frame.choice.d80211 = _11p;
 
                 _enumDot4Request = _response.msgID;
                 switch (_enumDot4Request) {
                     case Dot4Request__value_PR_SetInitialState:
                         printf("--- Set Initial State...\n\n");
                         break;
-                    case Dot4Request__value_PR_Dot11SetWsmTxInfo:
+                    case Dot4Request__value_PR_Dot4SetWsmTxInfo:
                         printf("--- Set WSM Tx Info...\n\n");
                         system("/opt/cohda/bin/llc chconfig -s");
                         break;
-                    case Dot4Request__value_PR_Dot11StartWsmTx:
+                    case Dot4Request__value_PR_Dot4StartWsmTx:
                         printf("--- Start WSM Tx...\n\n");
-                        pthread_create(&threads[1], NULL, ThreadTxMain, NULL);
+                        pthread_create(&threads[1], NULL, ThreadTxMain, &_framePresent);
                         break;
                     case Dot4Request__value_PR_StopWsmTx:
                         printf("--- Stop WSM Tx...\n\n");
@@ -274,22 +318,8 @@ void *ThreadUDPMain(void *arg)
                         break;
                 }
 
-                break;
-
-            case Frame_PR_d29451 :
-                printf("!!! J2945 Request RECV !!!\n\n");
-
-                _response.msgID = tci_msg->frame.choice.d29451.choice.request.messageId;
-                _response.resultCode = _resultCode;
-
-                _j2945.present = 2;
-                _j2945.choice.response = _response;
-
-                _tci_msg->version = TCI_VER;
-                _tci_msg->time = *_time64;
-                _tci_msg->frame.present = _framePresent;
-                _tci_msg->frame.choice.d29451 = _j2945;
-
+            case Frame_PR_d29451:
+                printf("!!! D2945 Request RECV !!!\n\n");
                 break;
 
             case Frame_PR_sutCtrl :
@@ -344,9 +374,24 @@ void *ThreadTxMain(void *arg)
 {
     pthread_detach(pthread_self());
 
-    _startWsmTx = tci_msg->frame.choice.d80211.choice.request.value.choice.Dot11StartWsmTx;
+    int *test;
+    test = arg;
 
-    asn_INTEGER2long(&_startWsmTx.radio.radio, &radio);    
+    switch(*test){
+        case Frame_PR_d16093:
+            _startWsmTx = tci_msg->frame.choice.d16093.choice.request.value.choice.Dot3StartWsmTx;
+            break;
+        case Frame_PR_d80211:
+            _startWsmTx = tci_msg->frame.choice.d80211.choice.request.value.choice.Dot11StartWsmTx;
+            break;
+        case Frame_PR_d16094:
+            _startWsmTx = tci_msg->frame.choice.d16094.choice.request.value.choice.Dot4StartWsmTx;
+            break;
+        case Frame_PR_d29451:
+            break;
+    }
+
+    asn_INTEGER2long(&_startWsmTx.radio.radio, &radio);
     switch(_startWsmTx.psid.present) {
         case 2:
             if(_startWsmTx.psid.choice.extension.present == 1)
@@ -370,16 +415,21 @@ void *ThreadTxMain(void *arg)
     sprintf(instruction, "%s%s", instruction, " -c");
     sprintf(instruction, "%s%ld", instruction, channelNumber);
     sprintf(instruction, "%s%s", instruction, " -p");
-    sprintf(instruction, "%s%ld", instruction, txPower);
+    sprintf(instruction, "%s%ld", instruction, txPower*2);
     sprintf(instruction, "%s%s", instruction, " -E");
-    for (int i = 0; i < _startWsmTx.payload->size; i++)
-    {
+    for (int i = 0; i < _startWsmTx.payload->size; i++) {
         sprintf(instruction, "%s%02x", instruction, payload[i]);
     }
     sprintf(instruction, "%s%s", instruction, " -B");
     sprintf(instruction, "%s%ld", instruction, psid);
     sprintf(instruction, "%s%s", instruction, " -r");
-    sprintf(instruction, "%s%ld", instruction, repeatRate);
+    sprintf(instruction, "%s%f", instruction, (float)repeatRate/5);
+    printf("\n\n!!! %d !!!\n\n", _setWsmTxInfo.infoElementsIncluded->buf[0]);
+    printf("\n\n!!! %d !!!\n\n", _setWsmTxInfo.infoElementsIncluded->buf[1]);
+    printf("\n\n!!! %d !!!\n\n", _setWsmTxInfo.infoElementsIncluded->buf[2]);
+    // if (_setWsmTxInfo.infoElementsIncluded->buf[1]) {
+    //     sprintf(instruction, "%s%s", instruction, " -A -F -G -H");
+    // }
 
     printf("%s\n", instruction);
 
