@@ -228,6 +228,51 @@ void *ThreadUDPMain(void *arg)
                 _tci_msg->time = *_time64;
                 _tci_msg->frame.present = _framePresent;
                 _tci_msg->frame.choice.d16094 = _dot4;
+                
+            case Frame_PR_d80211 :
+                printf("!!! 802.11p Request RECV !!!\n\n");
+
+                _response.msgID = tci_msg->frame.choice.d80211.choice.request.messageId;
+                _response.resultCode = _resultCode;
+
+                _11p.present = 2;
+                _11p.choice.response = _response;
+
+                _tci_msg->version = TCI_VER;
+                _tci_msg->time = *_time64;
+                _tci_msg->frame.present = _framePresent;
+                _tci_msg->frame.choice.d80211 = _11p;
+
+                _enumDot4Request = _response.msgID;
+                switch (_enumDot4Request) {
+                    case Dot4Request__value_PR_SetInitialState:
+                        printf("--- Set Initial State...\n\n");
+                        break;
+                    case Dot4Request__value_PR_Dot11SetWsmTxInfo:
+                        printf("--- Set WSM Tx Info...\n\n");
+                        system("/opt/cohda/bin/llc chconfig -s");
+                        break;
+                    case Dot4Request__value_PR_Dot11StartWsmTx:
+                        printf("--- Start WSM Tx...\n\n");
+                        pthread_create(&threads[1], NULL, ThreadTxMain, NULL);
+                        break;
+                    case Dot4Request__value_PR_StopWsmTx:
+                        printf("--- Stop WSM Tx...\n\n");
+                        system("kill -9 $(pgrep llc)");
+                        // pthread_cancel(threads[1]);
+                        break;
+                    case Dot4Request__value_PR_StartWsmRx:
+                        printf("--- Start WSM Rx...\n\n");
+                        pthread_create(&threads[1], NULL, ThreadRxMain, NULL);
+                        break;
+                    case Dot4Request__value_PR_StopWsmRx:
+                        printf("--- Stop WSM Rx...\n\n");
+                        system("kill -9 $(pgrep llc)");
+                        break;
+                    case Dot4Request__value_PR_NOTHING:
+                    default:
+                        break;
+                }
 
                 break;
 

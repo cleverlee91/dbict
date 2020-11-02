@@ -52,7 +52,7 @@ int main()
   int txpower=132;
   int tpid=0;
   int psid_len=1;
-  int psid_p=0;  
+  unsigned int psid_p=0;  
   int wsm_length=0;
   char wsm_payload[1000]={0};
   
@@ -69,34 +69,46 @@ int main()
 		  break;
 		  }
   }
-  if(input[contentcount]==0x0b)
-  {
-	  n_extension_count = input[contentcount+1];
-	  contentcount=contentcount+2;
-	  printf("N-extension count: %d \n\n",n_extension_count);
-  }
-  if(n_extension_count>0)
-  {
-	  channel=input[contentcount+2];
-	  contentcount=contentcount+3;
-  }
-  if(n_extension_count>1)
-  {
-	  rate=input[contentcount+2];
-	  contentcount=contentcount+3;
-  }
+//  if(input[contentcount]==0x0b)
+//  {
+//	  n_extension_count = input[contentcount+1];
+//	  contentcount=contentcount+2;
+//	  printf("N-extension count: %d \n\n",n_extension_count);
+//	  for(int l=0; l<n_extension_count ;l++)
+//	  {
+//		  printf("formoon come");
+//		  if(input[contentcount]==15)
+//		  {
+//			  channel=input[contentcount+2];
+//			  contentcount=contentcount+3;
+//		  }
+//		  else if(input[contentcount]==16)
+//		  {
+//			  rate=input[contentcount+2];
+//			  contentcount=contentcount+3;
+//		  }
+//		  else if(input[contentcount]==4)
+//		  {
+//			  txpower=input[contentcount+2];
+//			  contentcount=contentcount+3;
+//		  }
+//		  else 
+//		  {
+//			  contentcount=contentcount+3;
+//		  }
+//		  contentcount=contentcount+3;
+//	  }
+//  }
 
-  if(n_extension_count>2)
-  {
-	  txpower=input[contentcount+2];
-	  contentcount=contentcount+3;
-  }
+  
+
   //forchannelLoad
   if(n_extension_count>3)  contentcount=contentcount+3;
   
   tpid=input[contentcount];
   contentcount++;
   
+
   //psid = (p-encoded value)
   if(input[contentcount>=0x80])
   {
@@ -125,6 +137,52 @@ int main()
   printf("channel: %d,%d,%d,%d,%d,%d\n%s\n\n",channel,rate,txpower,tpid,psid_p,wsm_length,wsm_payload);
   
   
+  int psid_hex=0x81;
+  //psid_p to psid_hex
+  if(psid_hex<0x80)//1byte(p
+  {
+	  printf("under 0x80 \n\n");
+	  psid_p=psid_hex;
+  }else if(psid_hex<0x4080)//2byte(p
+  {
+	  printf("under 0x4080 \n\n");
+	  if(psid_hex<0x100)
+	  {
+		  psid_p=psid_hex-0x80+0x8000;
+	  }else
+	  {
+		  psid_p=psid_hex+0x7f80;
+		  
+	  }
+  }else if(psid_hex<0x204080)//3byte(p
+  {
+	  psid_p=psid_hex+0xc00000-0x4080;
+  }else if(psid_hex<0x10204080)//4byte(p
+  {
+	  psid_p=psid_hex+0xe0000000-0x204080;
+  }
+  printf("\n\nfinal psid is:  %02x\n\n",psid_p);
+
+  //psid_p to psid_hex
+  if(psid_p<0x80)//1byte(p
+  {
+	  psid_hex=psid_p;
+  }else if(psid_p<0xc00000)//2byte(p
+  {
+	  psid_hex=psid_p-0x8000+0x80;
+  }else if(psid_p<0xe0000000)//3byte(p
+  {
+	  psid_hex=psid_p-0xc00000+0x4080;
+  }else
+  {
+	  psid_hex=psid_p-0xe0000000+0x204080;
+  }
+  
+  printf("\n\nreturned psid is:  %02x\n\n",psid_hex);
+  
+  
+  
+  
   char instruction[100]={0};
 
   sprintf(instruction,"%s%s",instruction,"llc chconfig -s");
@@ -138,7 +196,6 @@ int main()
   sprintf(instruction,"%s%d",instruction,psid_p);
   sprintf(instruction,"%s%s",instruction," -E");
   sprintf(instruction,"%s%s",instruction,wsm_payload);
-  printf("%s\n\n\%c,",instruction,wsm_payload);
   
   
   
