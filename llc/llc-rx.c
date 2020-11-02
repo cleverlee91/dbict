@@ -35,6 +35,7 @@
 #include "llc-plugin.h"
 #include "debug-levels.h"
 
+TCIMsg_t *tci_msg;
 TCIMsg_t *_tci_msg;
 TCI16093_t _dot3;
 TCI80211_t _dot11;
@@ -45,8 +46,16 @@ Time64_t *_time64;
 
 Dot3Indication_t  _dot3Ind;
 Dot11Indication_t _dot11Ind;
+Indication_t _commonInd;
 
-asn_enc_rval_t er;
+StartWsmRx_t _startWsmRx;
+EventParams_t _eventParams;
+WsmParameters_t _wsmParameters;
+Pdu_t _pdu;
+Psid_t *_psid;
+
+asn_dec_rval_t dec_rval;
+asn_enc_rval_t enc_rval;
 
 unsigned char send_buffer[1024];
 struct sockaddr_in addr, client_addr;
@@ -97,6 +106,15 @@ struct ieee80211_qosframe *dot11pkHdr;
 
 // Fucntions Definitions
 static int LLC_RxCmdInit (void) {
+    FILE *fp;
+    fp = fopen("startRx", "r");
+    fseek(fp, 0, SEEK_END);
+    int size = ftell(fp);
+    uint8_t *test = calloc(1, size);
+    rewind(fp);
+    fread(test, size, 1, fp);
+    fclose(fp);
+    dec_rval = oer_decode(0, &asn_DEF_TCIMsg, (void **)&tci_msg, test, size);
     return Plugin_CmdRegister(&RxCmd);
 }
 static void LLC_RxCmdExit (void) {
@@ -152,35 +170,44 @@ static void LLC_RxPrint (struct LLCRx *pDev, tMKxRxPacket *pMsg) {
 }
 static tMKxStatus LLC_RxAlloc (struct MKx *pMKx, int BufLen, uint8_t **ppBuf, void **ppPriv) {
     int Res = MKXSTATUS_FAILURE_INTERNAL_ERROR;
-    //d_fnstart(D_API, NULL, "(pMKx %p BufLen %d, ppBuf %p, ppPriv %p)\n", pMKx, BufLen, ppbuf, ppPriv);
     *ppBuf = malloc(BufLen);
     if (*ppBuf != NULL)
         Res = MKXSTATUS_SUCCESS;
-    //d_fnend(D_API, NULL, "(pMKx %p bufLen %d, ppBuf %p, ppPriv %p) = %d\n", pMKx, BufLen, ppBuf, ppPriv, Res);
     return Res;
 }
 static tMKxStatus LLC_RxInd (struct MKx *pMKx, tMKxRxPacket *pMsg, void *pPriv) {
+    
     int Res = 0;
 
     uint8_t *packet;
-    _tci_msg = calloc(1, sizeof(TCIMsg_t));
-    _time64 = calloc(1, sizeof(Time64_t));
-
-    setTimeStamp(_time64);
-
-    _tci_msg->version = TCI_VER;
-    _tci_msg->time = *_time64;
-
     int packet_len = pMsg->RxPacketData.RxFrameLength;
+    int start_dot11frame = 0;
+    int start_dot3frame = 0;
+    int start_dot2data = 0;
+    // start_dot3payload, start_ipv6payload
     packet = calloc(1, packet_len);
     memcpy(packet, pMsg->RxPacketData.RxFrame, packet_len);
-
-    dot11pkHdr = (struct ieee80211_qosframe *)packet;
 
     printf("\n\n");
     printf("!!! LLC Rx Data RECV !!!\n\n");
 
+    printf("recieved len : %d\n", packet_len);
+    printf("recieved data : ");
+
+    for (int i = 0; i < pMsg->RxPacketData.RxFrameLength; i++)
+    {
+        printf("%02x ", pMsg->RxPacketData.RxFrame[i]);
+    }
+
+    printf("\n\n");
+
+    dot11pkHdr = (struct ieee80211_qosframe *)packet;
+
     packet += sizeof(struct ieee80211_qosframe);
+    packet_len -= sizeof(struct ieee80211_qosframe);
+
+    start_dot3frame = pMsg->RxPacketData.RxFrameLength - packet_len;
+
     uint8_t *wsm_llc = calloc(1, 2);
     uint8_t *wsmp_general = calloc(1, 1);
     uint8_t *wsmp_countExt = calloc(1, 1);
@@ -192,86 +219,245 @@ static tMKxStatus LLC_RxInd (struct MKx *pMKx, tMKxRxPacket *pMsg, void *pPriv) 
 
     wsm_llc = (uint8_t *) packet;
     packet += 2;
+    packet_len -= 2;
 
     wsmp_general = (uint8_t *) packet;
     packet += 1;
+    packet_len -= 1;
 
-    wsmp_countExt = (uint8_t *)packet;
-    packet += 1;
+    if (*wsmp_general == 0x0b) {
+        wsmp_countExt = (uint8_t *)packet;
+        packet += 1;
+        packet_len -= 1;
 
-    uint8_t *wsm_waveEleID = calloc(*wsmp_countExt, 1);
-    uint8_t *wsm_waveEleLen = calloc(*wsmp_countExt, 1);
-    uint8_t *wsm_waveEleContent;
-    uint8_t **p_wsm_waveEleContents;
+        uint8_t cnt_waveInfo = *wsmp_countExt;
+        uint8_t **pp_wsm_waveEleContents = NULL;
 
-    uint8_t *tmp_packet = packet;
-    uint8_t len_waveInfo = 0;
+        for (int i = 0; i < cnt_waveInfo; i++) {
+            uint8_t *wsm_waveEleContent = calloc(1, packet[1]);
+            switch(packet[0]) {
+                case 0x0f:
 
-    for(int i = 0; i < *wsmp_countExt; i++) {
-        wsm_waveEleID = (uint8_t *)tmp_packet;
-        tmp_packet++;
-        wsm_waveEleLen = (uint8_t *)tmp_packet;
-        tmp_packet++;
-        tmp_packet += *wsm_waveEleLen;
-
-        len_waveInfo = len_waveInfo + 2 + *wsm_waveEleLen;
+                    break;
+                case 0x0e:
+                    break;
+                case 0x04:
+                    break;
+            }
+            wsm_waveEleContent = (uint8_t *) (packet + 2);
+            pp_wsm_waveEleContents = (uint8_t **) wsm_waveEleContent;
+            packet_len = packet_len - packet[1] - 2;
+            packet = packet + packet[1] + 2;
+            pp_wsm_waveEleContents++;
+        }
     }
 
-    packet += len_waveInfo;
-    
     wsmp_tpid = (uint8_t *)packet;
     packet++;
-    
+    packet_len -= 1;
+
     ext_test = (uint8_t *)packet;
+    int psid_len = 0;
 
     if(*ext_test / 16 < 8) {
         wsmp_psid = calloc(1, 1);
         wsmp_psid = (uint8_t *) packet;
-        packet += 1;
+        psid_len = 1;
+        packet += psid_len;
+        packet_len -= psid_len;
     } else if (*ext_test / 16 < 11) {
         wsmp_psid = calloc(1, 2);
         wsmp_psid = (uint8_t *)packet;
-        packet += 2;
+        psid_len = 2;
+        packet += psid_len;
+        packet_len -= psid_len;
     } else if (*ext_test / 16 < 14) {
         wsmp_psid = calloc(1, 3);
         wsmp_psid = (uint8_t *)packet;
-        packet += 3;
+        psid_len = 3;
+        packet += psid_len;
+        packet_len -= psid_len;
     } else {
         wsmp_psid = calloc(1, 4);
         wsmp_psid = (uint8_t *)packet;
-        packet += 4;
+        psid_len = 4;
+        packet += psid_len;
+        packet_len -= psid_len;
     }
 
     ext_test = (uint8_t *)packet;
+
     if(*ext_test > 0x7f) {
         wsmp_wsmLen = calloc(1, 2);
         wsmp_wsmLen = (uint8_t *) packet;
         packet += 2;
+        packet_len -= 2;
     } else {
         wsmp_wsmLen = calloc(1, 1);
         wsmp_wsmLen = (uint8_t *)packet;
         packet += 1;
+        packet_len -= 1;
     }
 
-    printf("%d\n\n", *wsmp_psid);
-    printf("%d\n\n", *wsmp_wsmLen);
+    start_dot2data = pMsg->RxPacketData.RxFrameLength - packet_len;
 
-    for (int i = 0; i < pMsg->RxPacketData.RxFrameLength; i++)
-    {
-        printf("%02x ", pMsg->RxPacketData.RxFrame[i]);
+    _tci_msg = calloc(1, sizeof(TCIMsg_t));
+    _time64 = calloc(1, sizeof(Time64_t));
+
+    setTimeStamp(_time64);
+
+    _tci_msg->version = TCI_VER;
+    _tci_msg->time = *_time64;
+
+    switch (tci_msg->frame.present) {
+
+        case Frame_PR_d16093:
+            break;
+
+        case Frame_PR_d80211:
+            _startWsmRx = tci_msg->frame.choice.d80211.choice.request.value.choice.StartWsmRx;
+
+            int buf_size = _startWsmRx.eventHandling.eventFlag->size;
+            int bit_unused = _startWsmRx.eventHandling.eventFlag->bits_unused;
+            int bit_leng = buf_size * 8 - bit_unused;
+            long rxFlag = 0;
+            long tmpFlag = 0;
+            
+            for (int i = 0; i < buf_size; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    if ((*(_startWsmRx.eventHandling.rxFlag->buf + i) << j) & 128)
+                    {
+                        tmpFlag = bit_leng - ((buf_size - i) * 8 - j - bit_unused);
+                        if (tmpFlag < 3)
+                            rxFlag |= (1 << tmpFlag);
+                        else
+                            printf("\n\n!!!! out of rxFlag !!!!\n\n");
+                    }
+                }
+            }
+
+            buf_size = _startWsmRx.eventHandling.eventFlag->size;
+            bit_unused = _startWsmRx.eventHandling.eventFlag->bits_unused;
+            bit_leng = buf_size * 8 - bit_unused;
+            long eventFlag = 0;
+            
+            for (int i = 0; i < buf_size; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    if ((*(_startWsmRx.eventHandling.eventFlag->buf + i) << j) & 128)
+                    {
+                        eventFlag = bit_leng - ((buf_size - i) * 8 - j - bit_unused);
+                        if (eventFlag < 5)
+                        {
+                            asn_long2INTEGER(&_dot11Ind.event, eventFlag + 1);
+                        }
+                        else
+                            printf("\n\n!!!! out of eventFlag !!!!\n\n");
+                    }
+                }
+            }
+
+            long _eventParamsChoice = 0;
+            asn_INTEGER2long(_startWsmRx.eventHandling.eventParamsChoice, &_eventParamsChoice);
+
+            switch (_eventParamsChoice) {
+
+                case EventParamsChoice_service:
+                    _eventParams.present = EventParams_PR_service;
+                    break;
+
+                case EventParamsChoice_wsm:
+                    _eventParams.present = EventParams_PR_wsm;
+                    _psid = (Psid_t *) _startWsmRx.psid;
+                    _wsmParameters.psid = *_psid;
+                    _wsmParameters.radio = _startWsmRx.radio;
+                    _wsmParameters.wsmpVersion = 3;
+                    _wsmParameters.channelIdentifier = _startWsmRx.channelIdentifier;
+                    _wsmParameters.dataRate = pMsg->RxPacketData.MCS;
+                    //
+                    _wsmParameters.receivePowerLevel = pMsg->RxPacketData.RxPowerAnt2;
+                    //
+                    _wsmParameters.sourceMACAddr.buf = dot11pkHdr->i_addr2;
+                    _wsmParameters.sourceMACAddr.size = IEEE80211_ADDR_LEN;
+                    _eventParams.choice.wsm = _wsmParameters;
+                    break;
+
+                case EventParamsChoice_ip:
+                    _eventParams.present = EventParams_PR_ip;
+                    break;
+
+                case EventParamsChoice_d80211frame:
+                    _eventParams.present = EventParams_PR_d80211frame;
+                    break;
+
+                case EventParamsChoice_security:
+                    _eventParams.present = EventParams_PR_security;
+                    break;
+            }
+
+            long _forwardPdu = 0;
+            asn_INTEGER2long(_startWsmRx.eventHandling.forwardPdu, &_forwardPdu);
+
+            printf("\n\n!!!! %ld !!!!\n\n", _forwardPdu);
+
+            if (rxFlag & 2) {
+                if (rxFlag & 1) {
+                    switch (_forwardPdu) {
+                        case PduType_reserved:
+                            asn_long2INTEGER(&_dot11Ind.pdu->pduType, _forwardPdu);
+                            _pdu.pduData.size = pMsg->RxPacketData.RxFrameLength - start_dot11frame;
+                            _pdu.pduData.buf = pMsg->RxPacketData.RxFrame + start_dot11frame;
+                            break;
+                        case PduType_d80211frame:
+                            asn_long2INTEGER(&_dot11Ind.pdu->pduType, _forwardPdu);
+                            _pdu.pduData.size = pMsg->RxPacketData.RxFrameLength - start_dot3frame;
+                            printf("#1\n");
+                            _pdu.pduData.buf = pMsg->RxPacketData.RxFrame + start_dot3frame;
+                            break;
+                        case PduType_d16093frame:
+                            asn_long2INTEGER(&_dot11Ind.pdu->pduType, _forwardPdu);
+                            _pdu.pduData.size = pMsg->RxPacketData.RxFrameLength - start_dot2data;
+                            _pdu.pduData.buf = pMsg->RxPacketData.RxFrame + start_dot2data;
+                        default:
+                            printf("\n\n!!!! out of pduType !!!!\n\n");
+                            break;
+                    }
+                }
+            }
+
+            _dot11Ind.pdu = &_pdu;
+
+            _dot11Ind.eventParams = &_eventParams;
+            _dot11Ind.radio = _startWsmRx.radio;
+            _dot11.present = TCI80211_PR_indication;
+            _dot11.choice.indication = _dot11Ind;
+            _tci_msg->frame.present = Frame_PR_d80211;
+            _tci_msg->frame.choice.d80211 = _dot11;
+            break;
+
+        case Frame_PR_d16094:
+            break;
+
+        case Frame_PR_sutCtrl:
+            break;
+
+        case Frame_PR_d29451:
+            break;
+
+        case Frame_PR_NOTHING:
+            break;
     }
 
-    printf("\n\n");
+    printf("--- Send TCI Indication...\n\n");
 
-    for (int i = 0; i < 150; i++) {
-        printf("%02x ", packet[i]);
-    }
-
-    printf("\n\n");
     xer_fprint(stdout, &asn_DEF_TCIMsg, _tci_msg);
     printf("\n\n");
-    er = oer_encode_to_buffer(&asn_DEF_TCIMsg, 0, _tci_msg, send_buffer, sizeof(send_buffer));
-    sendto(sock_udp, send_buffer, er.encoded, 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
+
+    enc_rval = oer_encode_to_buffer(&asn_DEF_TCIMsg, 0, _tci_msg, send_buffer, sizeof(send_buffer));
+    sendto(sock_udp, send_buffer, enc_rval.encoded, 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
     return Res;
 }
 
