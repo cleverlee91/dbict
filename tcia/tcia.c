@@ -62,8 +62,7 @@ Time64_t *_time64;
 long long time_mil;
 
 int main()
-{    
-    
+{        
     pthread_create(&threads[0], NULL, ThreadUDPMain, NULL);
 
     while (1)
@@ -200,6 +199,9 @@ void *ThreadUDPMain(void *arg)
                         break;
                     case Dot11Request__value_PR_StartWsmRx:
                         printf("--- Start WSM Rx...\n\n");
+                        FILE *fp = fopen("startRx", "w");
+                        fwrite(recv_buffer, 1, recv_len, fp);
+                        fclose(fp);
                         pthread_create(&threads[1], NULL, ThreadRxMain, NULL);
                         break;
                     case Dot11Request__value_PR_StopWsmRx:
@@ -265,7 +267,6 @@ void *ThreadUDPMain(void *arg)
             default:
                 break;
         }
-
         xer_fprint(stdout, &asn_DEF_TCIMsg, _tci_msg);
         printf("\n\n");
 
@@ -291,7 +292,6 @@ void *ThreadUDPMain(void *arg)
 
 void *ThreadRxMain(void *arg) {
     pthread_detach(pthread_self());
-    system("kill -9 $(pgrep llc)");
     system("/opt/cohda/bin/llc rx");
 }
 
