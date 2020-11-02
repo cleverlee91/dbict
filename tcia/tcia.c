@@ -31,13 +31,14 @@ void setTimeStamp(Time64_t* time64);
 pthread_t threads[2];
 
 long radio = 0;
-long timeSlot = 0;
-long channelNumber = 0;
-long dataRate = 0;
-long txPower = 0;
-long psid = 0;
-long repeatRate = 0;
-long priority = 0;
+long timeSlot = 1;
+long channelNumber = 172;
+long dataRate = 12;
+long txPower = 40;
+long psid = 11;
+long repeatRate = 10;
+long priority = 7;
+long n_extension=0;
 uint8_t *payload = NULL;
 
 TCIMsg_t *tci_msg;
