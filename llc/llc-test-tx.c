@@ -530,7 +530,7 @@ static int Tx_Send (tTxOpts * pTxOpts, int Pause_us)
   pTxPowerRangeSpec = &(pTxCHOpts->TxPower);
 
   //to print char array.
-  //for (int k=0;pPayload[k]!='\0';k++) {printf(".%d",pPayload[k]);}
+  for (int k=0;pPayload[k]!='\0';k++) {printf(".%d",pPayload[k]);}
 
 
   //RadioSetting
@@ -694,8 +694,6 @@ Error:
 
 static int Tx_SendAtRate(tTxOpts * pTxOpts)
 {
-  printf("Tx_send_at_rate22\n");
-
   tTxErrCode ErrCode = TX_ERR_NONE;
   int Pause_us;
   uint32_t RefSeqNum;

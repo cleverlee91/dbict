@@ -370,6 +370,7 @@ int dot3_gen (unsigned char *pPayload,
   unsigned char dot2_unsecured[2] = {0x03,0x80};
 
   contentcount=3;
+
   if(wsmp_n_extension_ind == 1)
   {
 	  pPayload[contentcount]=wsmp_n_extension_count;
@@ -399,8 +400,10 @@ int dot3_gen (unsigned char *pPayload,
 	  contentcount=contentcount+3;
 	  wsmp_n_extension_count++;
   }
+
   pPayload[2]=subtype*16+wsmp_n_extension_ind*8+wsmp_version;
-  printf("\nn extension ind: %d\nrate:%d\ntxpower:%d\npsid:%d\n",wsmp_n_extension_ind,datarate,transmittedpower,psid);
+  pPayload[3]=wsmp_n_extension_count;
+  printf("\nn extension 3:: %d\n",wsmp_n_extension_count);
 
   pPayload[contentcount]=tpid;
   contentcount++;
