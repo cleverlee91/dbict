@@ -4,7 +4,7 @@ EXTRA_CFLAGS += -I.\
 				-I../asn\
 				-I../llc\
 
-LDFLAGS += -L. -ltciasn -lpthread -lllc -lpcap
+LDFLAGS += -L. -ltciasn -lpthread -lpcap
 
 TARGET = tcia
 
