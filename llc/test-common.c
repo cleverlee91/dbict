@@ -317,6 +317,7 @@ int dot3_gen (unsigned char *pPayload,
   int wsmp_version=3;//.....000[2]
   int wsmp_n_extension_count=0;//
 
+  printf("\n\ninputed mcs is :%d\n\n:",datarate);
   //change MCS to real datarate(MB/s for dot3 header)
   switch(datarate){
   case 11:
@@ -326,24 +327,26 @@ int dot3_gen (unsigned char *pPayload,
 	  mbps=4;
 	  break;
   case 10:
+	  printf("\nmcs10\n");
 	  mbps=6;
 	  break;
   case 14:
 	  mbps=9;
 	  break;
-  case 19:
+  case 9:
 	  mbps=12;
 	  break;
   case 13:
 	  mbps=18;
 	  break;
-  case 18:
+  case 8:
 	  mbps=24;
 	  break;
   case 12:
 	  mbps=27;
 	  break;
   default:
+	  printf("\ndefaultMCS\n");
 	  mbps=12;
 	  break;
   }

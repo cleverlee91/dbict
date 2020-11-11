@@ -1,4 +1,4 @@
-// Included Headers
+// Included Header
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -106,15 +106,6 @@ struct ieee80211_qosframe *dot11pkHdr;
 
 // Fucntions Definitions
 static int LLC_RxCmdInit (void) {
-    FILE *fp;
-    fp = fopen("startRx", "r");
-    fseek(fp, 0, SEEK_END);
-    int size = ftell(fp);
-    uint8_t *test = calloc(1, size);
-    rewind(fp);
-    fread(test, size, 1, fp);
-    fclose(fp);
-    dec_rval = oer_decode(0, &asn_DEF_TCIMsg, (void **)&tci_msg, test, size);
     return Plugin_CmdRegister(&RxCmd);
 }
 static void LLC_RxCmdExit (void) {
@@ -176,6 +167,21 @@ static tMKxStatus LLC_RxAlloc (struct MKx *pMKx, int BufLen, uint8_t **ppBuf, vo
     return Res;
 }
 static tMKxStatus LLC_RxInd (struct MKx *pMKx, tMKxRxPacket *pMsg, void *pPriv) {
+
+    FILE *fp;
+    fp = fopen("/home/ubuntu/dbrse/dbrse-01/tcia/bin/startRx", "r");
+    fseek(fp, 0, SEEK_END);
+    int size = ftell(fp);
+    uint8_t *test = calloc(1, size);
+    rewind(fp);
+    fread(test, size, 1, fp);
+    fclose(fp);
+    dec_rval = oer_decode(0, &asn_DEF_TCIMsg, (void **)&tci_msg, test, size);
+
+
+    printf("\n\n !!! Get File !!! \n\n");
+    
+    xer_fprint(stdout, &asn_DEF_TCIMsg, tci_msg);
     
     int Res = 0;
 
@@ -267,6 +273,7 @@ static tMKxStatus LLC_RxInd (struct MKx *pMKx, tMKxRxPacket *pMsg, void *pPriv) 
         psid_len = 1;
         packet += psid_len;
         packet_len -= psid_len;
+        
     } else if (*ext_test / 16 < 11) {
         wsmp_psid = calloc(1, 2);
         wsmp_psid = (uint8_t *)packet;
@@ -317,10 +324,10 @@ static tMKxStatus LLC_RxInd (struct MKx *pMKx, tMKxRxPacket *pMsg, void *pPriv) 
     switch (tci_msg->frame.present) {
 
         case Frame_PR_d16093:
-            break;
+        
+            _startWsmRx = tci_msg->frame.choice.d16093.choice.request.value.choice.StartWsmRx;
+            _psid = (Psid_t *) _startWsmRx.psid;
 
-        case Frame_PR_d80211:
-            _startWsmRx = tci_msg->frame.choice.d80211.choice.request.value.choice.StartWsmRx;
 
             int buf_size = _startWsmRx.eventHandling.eventFlag->size;
             int bit_unused = _startWsmRx.eventHandling.eventFlag->bits_unused;
@@ -357,7 +364,7 @@ static tMKxStatus LLC_RxInd (struct MKx *pMKx, tMKxRxPacket *pMsg, void *pPriv) 
                         eventFlag = bit_leng - ((buf_size - i) * 8 - j - bit_unused);
                         if (eventFlag < 5)
                         {
-                            asn_long2INTEGER(&_dot11Ind.event, eventFlag + 1);
+                            asn_long2INTEGER(&_dot3Ind.event, eventFlag + 1);
                         }
                         else
                             printf("\n\n!!!! out of eventFlag !!!!\n\n");
@@ -365,43 +372,55 @@ static tMKxStatus LLC_RxInd (struct MKx *pMKx, tMKxRxPacket *pMsg, void *pPriv) 
                 }
             }
 
-            long _eventParamsChoice = 0;
-            asn_INTEGER2long(_startWsmRx.eventHandling.eventParamsChoice, &_eventParamsChoice);
+            _eventParams.present = EventParams_PR_wsm;
+            _wsmParameters.psid = *_psid;
+            _wsmParameters.radio = _startWsmRx.radio;
+            _wsmParameters.wsmpVersion = 3;
+            _wsmParameters.channelIdentifier = _startWsmRx.channelIdentifier;
+            _wsmParameters.dataRate = pMsg->RxPacketData.MCS;
+            //
+            _wsmParameters.receivePowerLevel = pMsg->RxPacketData.RxPowerAnt2;
+            //
+            _wsmParameters.sourceMACAddr.buf = dot11pkHdr->i_addr2;
+            _wsmParameters.sourceMACAddr.size = IEEE80211_ADDR_LEN;
+            _eventParams.choice.wsm = _wsmParameters;
 
-            switch (_eventParamsChoice) {
+            // long _eventParamsChoice = 0;
+            // asn_INTEGER2long(_startWsmRx.eventHandling.eventParamsChoice, &_eventParamsChoice);
 
-                case EventParamsChoice_service:
-                    _eventParams.present = EventParams_PR_service;
-                    break;
+            // switch (_eventParamsChoice) {
 
-                case EventParamsChoice_wsm:
-                    _eventParams.present = EventParams_PR_wsm;
-                    _psid = (Psid_t *) _startWsmRx.psid;
-                    _wsmParameters.psid = *_psid;
-                    _wsmParameters.radio = _startWsmRx.radio;
-                    _wsmParameters.wsmpVersion = 3;
-                    _wsmParameters.channelIdentifier = _startWsmRx.channelIdentifier;
-                    _wsmParameters.dataRate = pMsg->RxPacketData.MCS;
-                    //
-                    _wsmParameters.receivePowerLevel = pMsg->RxPacketData.RxPowerAnt2;
-                    //
-                    _wsmParameters.sourceMACAddr.buf = dot11pkHdr->i_addr2;
-                    _wsmParameters.sourceMACAddr.size = IEEE80211_ADDR_LEN;
-                    _eventParams.choice.wsm = _wsmParameters;
-                    break;
+            //     case EventParamsChoice_service:
+            //         _eventParams.present = EventParams_PR_service;
+            //         break;
 
-                case EventParamsChoice_ip:
-                    _eventParams.present = EventParams_PR_ip;
-                    break;
+            //     case EventParamsChoice_wsm:
+            //         _eventParams.present = EventParams_PR_wsm;
+            //         _wsmParameters.psid = *_psid;
+            //         _wsmParameters.radio = _startWsmRx.radio;
+            //         _wsmParameters.wsmpVersion = 3;
+            //         _wsmParameters.channelIdentifier = _startWsmRx.channelIdentifier;
+            //         _wsmParameters.dataRate = pMsg->RxPacketData.MCS;
+            //         //
+            //         _wsmParameters.receivePowerLevel = pMsg->RxPacketData.RxPowerAnt2;
+            //         //
+            //         _wsmParameters.sourceMACAddr.buf = dot11pkHdr->i_addr2;
+            //         _wsmParameters.sourceMACAddr.size = IEEE80211_ADDR_LEN;
+            //         _eventParams.choice.wsm = _wsmParameters;
+            //         break;
 
-                case EventParamsChoice_d80211frame:
-                    _eventParams.present = EventParams_PR_d80211frame;
-                    break;
+            //     case EventParamsChoice_ip:
+            //         _eventParams.present = EventParams_PR_ip;
+            //         break;
 
-                case EventParamsChoice_security:
-                    _eventParams.present = EventParams_PR_security;
-                    break;
-            }
+            //     case EventParamsChoice_d80211frame:
+            //         _eventParams.present = EventParams_PR_d80211frame;
+            //         break;
+
+            //     case EventParamsChoice_security:
+            //         _eventParams.present = EventParams_PR_security;
+            //         break;
+            // }
 
             long _forwardPdu = 0;
             asn_INTEGER2long(_startWsmRx.eventHandling.forwardPdu, &_forwardPdu);
@@ -410,18 +429,18 @@ static tMKxStatus LLC_RxInd (struct MKx *pMKx, tMKxRxPacket *pMsg, void *pPriv) 
                 if (rxFlag & 1) {
                     switch (_forwardPdu) {
                         case PduType_reserved:
-                            asn_long2INTEGER(&_dot11Ind.pdu->pduType, _forwardPdu);
+                            asn_long2INTEGER(&_dot3Ind.pdu->pduType, _forwardPdu);
                             _pdu.pduData.size = pMsg->RxPacketData.RxFrameLength - start_dot11frame;
                             _pdu.pduData.buf = pMsg->RxPacketData.RxFrame + start_dot11frame;
                             break;
                         case PduType_d80211frame:
-                            asn_long2INTEGER(&_dot11Ind.pdu->pduType, _forwardPdu);
+                            asn_long2INTEGER(&_dot3Ind.pdu->pduType, _forwardPdu);
                             _pdu.pduData.size = pMsg->RxPacketData.RxFrameLength - start_dot3frame;
                             printf("#1\n");
                             _pdu.pduData.buf = pMsg->RxPacketData.RxFrame + start_dot3frame;
                             break;
                         case PduType_d16093frame:
-                            asn_long2INTEGER(&_dot11Ind.pdu->pduType, _forwardPdu);
+                            asn_long2INTEGER(&_dot3Ind.pdu->pduType, _forwardPdu);
                             _pdu.pduData.size = pMsg->RxPacketData.RxFrameLength - start_dot2data;
                             _pdu.pduData.buf = pMsg->RxPacketData.RxFrame + start_dot2data;
                         default:
@@ -431,14 +450,18 @@ static tMKxStatus LLC_RxInd (struct MKx *pMKx, tMKxRxPacket *pMsg, void *pPriv) 
                 }
             }
 
-            _dot11Ind.pdu = &_pdu;
+            _dot3Ind.pdu = &_pdu;
 
-            _dot11Ind.eventParams = &_eventParams;
-            _dot11Ind.radio = _startWsmRx.radio;
-            _dot11.present = TCI80211_PR_indication;
-            _dot11.choice.indication = _dot11Ind;
-            _tci_msg->frame.present = Frame_PR_d80211;
-            _tci_msg->frame.choice.d80211 = _dot11;
+            _dot3Ind.eventParams = &_eventParams;
+            _dot3Ind.radio = _startWsmRx.radio;
+            _dot3.present = TCI16093_PR_indication;
+            _dot3.choice.indication = _dot3Ind;
+            _tci_msg->frame.present = Frame_PR_d16093;
+            _tci_msg->frame.choice.d16093 = _dot3;
+            printf("\n\n!!!! 1 !!!!\n\n");
+            break;
+
+        case Frame_PR_d80211:
             break;
 
         case Frame_PR_d16094:
@@ -453,35 +476,47 @@ static tMKxStatus LLC_RxInd (struct MKx *pMKx, tMKxRxPacket *pMsg, void *pPriv) 
         case Frame_PR_NOTHING:
             break;
     }
-
     
+    long psid_tci = 0;
 
-    enc_rval = oer_encode_to_buffer(&asn_DEF_TCIMsg, 0, _tci_msg, send_buffer, sizeof(send_buffer));
-    int psid_tci = 0;
-
-    switch (_wsmParameters.psid.present) {
+    switch(_psid->present) {
         case 2:
-            if (_wsmParameters.psid.choice.extension.present == 1)
-                psid_tci = _wsmParameters.psid.choice.extension.choice.content;
-            else if (_wsmParameters.psid.choice.extension.present == 2)
-                psid_tci = _wsmParameters.psid.choice.extension.choice.extension.choice.content;
+            printf("\n\n!!!! 2 - 2 !!!!\n\n");
+            if (_psid->choice.extension.present == 1)
+                psid_tci = _psid->choice.extension.choice.content;
+            else if (_psid->choice.extension.present == 2) {
+                Ext2_t _ext2 = _psid->choice.extension.choice.extension;
+                if (_ext2.present == 1)
+                    psid_tci = _ext2.choice.content;
+                else if (_ext2.present == 2)
+                    asn_INTEGER2long(&_ext2.choice.extension, &psid_tci);
+            }
             break;
         case 1:
-            psid_tci = _wsmParameters.psid.choice.content;
+            printf("\n\n!!!! 2 - 1 !!!!\n\n");
+            psid_tci = _psid->choice.content;
             break;
         case 0:
+            printf("\n\n!!!! 2 - 0 !!!!\n\n");
             break;
     }
+
+    printf("\n\n !!! %d %ld !!! \n\n", psid_dec, psid_tci);
 
     if (psid_dec == psid_tci) {
         printf("--- Send TCI Indication...\n\n");
 
         xer_fprint(stdout, &asn_DEF_TCIMsg, _tci_msg);
         printf("\n\n");
+        enc_rval = oer_encode_to_buffer(&asn_DEF_TCIMsg, 0, _tci_msg, send_buffer, sizeof(send_buffer));
         sendto(sock_udp, send_buffer, enc_rval.encoded, 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
+        // er = oer_encode_to_buffer(&asn_DEF_TCIMsg, 0, _tci_msg, send_buffer, sizeof(send_buffer));
+        // sendto(sock_udp, send_buffer, er.encoded, 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
     } else {
         printf("\n\n!!!! Miss Matched Psid !!!!\n\n");
     }
+
+    ASN_STRUCT_RESET(asn_DEF_TCIMsg, tci_msg);
         
     return Res;
 }
@@ -509,6 +544,7 @@ Error:
         LLC_RxUsage();
     return Res;
 }
+
 int LLC_RxExit (struct LLCRx *pDev) {
     int Res;
     (void) MKx_Recv(NULL);
@@ -517,6 +553,7 @@ int LLC_RxExit (struct LLCRx *pDev) {
     Res = 0;
     return Res;
 }
+
 static int LLC_RxMain (int Argc, char **ppArgv) {
     int Res;
 #define RX_IF_MKX (0)
@@ -590,6 +627,7 @@ Error:
 
     return Res;
 }
+
 void setTimeStamp(Time64_t *time64) {
     struct timeval tv;
     gettimeofday(&tv, NULL);

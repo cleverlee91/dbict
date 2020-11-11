@@ -31,18 +31,22 @@ void setTimeStamp(Time64_t* time64);
 pthread_t threads[2];
 
 long radio = 0;
-long timeSlot = 1;
-long channelNumber = 172;
-long dataRate = 12;
-long txPower = 40;
-long psid = 11;
-long repeatRate = 10;
-long priority = 7;
-long n_extension=0;
+long timeSlot = 0;
+long channelNumber = 0;
+long dataRate = 0;
+long txPower = 0;
+long psid = 0;
+long repeatRate = 0;
+long priority = 0;
 uint8_t *payload = NULL;
+
+bool flag_powerInd = false;
+bool flag_channelInd = false;
+bool flag_datarateInd = false;
 
 TCIMsg_t *tci_msg;
 TCIMsg_t *_tci_msg;
+TCIMsg_t *__tci_msg;
 
 TCI16093_t _dot3;
 TCI80211_t _11p;
@@ -150,9 +154,16 @@ void *ThreadUDPMain(void *arg)
                         printf("--- Set Initial State...\n\n");
                         break;
                     case Dot3Request__value_PR_Dot3SetWsmTxInfo:
-                        printf("--- Set WSM Tx Info...\n\n");
+                        // printf("--- Set WSM Tx Info...\n\n");
+                        // FILE *fp = fopen("startTxInfo", "w");
+                        // fwrite(recv_buffer, 1, recv_len, fp);
+                        // fclose(fp);
 
                         _setWsmTxInfo = tci_msg->frame.choice.d16093.choice.request.value.choice.Dot3SetWsmTxInfo;
+
+                        flag_powerInd = _setWsmTxInfo.infoElementsIncluded->buf[0] & 0x80;
+                        flag_channelInd = _setWsmTxInfo.infoElementsIncluded->buf[1] & 0x10;
+                        flag_datarateInd = _setWsmTxInfo.infoElementsIncluded->buf[1] & 0x08;
 
                         asn_INTEGER2long(&_setWsmTxInfo.radio.radio, &radio);
                         asn_INTEGER2long(&_setWsmTxInfo.timeslot, &timeSlot);
@@ -233,6 +244,18 @@ void *ThreadUDPMain(void *arg)
                         txPower = _setWsmTxInfo.transmitPowerLevel;
                         priority = _setWsmTxInfo.userPriority;
 
+
+                        printf("\n\n !!! %d !!! \n\n", _setWsmTxInfo.infoElementsIncluded->buf[0]);
+                        printf("\n\n !!! %d !!! \n\n", _setWsmTxInfo.infoElementsIncluded->buf[1]);
+                        printf("\n\n !!! %d !!! \n\n", _setWsmTxInfo.infoElementsIncluded->buf[2]);
+                        
+    
+                        //if (_setWsmTxInfo.infoElementsIncluded->buf[0]) {
+                        //    __flag = true;
+                        //} else {
+                        //    __flag = false;
+                        //}
+
                         /* code insert */
                         char instruction[100] = {0};
                         sprintf(instruction, "%s%s", instruction, "/opt/cohda/bin/llc chconfig -s");
@@ -258,9 +281,9 @@ void *ThreadUDPMain(void *arg)
                         break;
                     case Dot11Request__value_PR_StartWsmRx:
                         printf("--- Start WSM Rx...\n\n");
-                        FILE *fp = fopen("startRx", "w");
-                        fwrite(recv_buffer, 1, recv_len, fp);
-                        fclose(fp);
+                        // FILE *fp = fopen("startRx", "w");
+                        // fwrite(recv_buffer, 1, recv_len, fp);
+                        // fclose(fp);
                         pthread_create(&threads[1], NULL, ThreadRxMain, NULL);
                         break;
                     case Dot11Request__value_PR_StopWsmRx:
@@ -358,6 +381,8 @@ void *ThreadUDPMain(void *arg)
 
         printf("\n\n");
 
+        sleep(1);
+
         sendto(sock_udp, send_buffer, er.encoded, 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
 
         ASN_STRUCT_RESET(asn_DEF_TCIMsg, tci_msg);
@@ -397,8 +422,13 @@ void *ThreadTxMain(void *arg)
         case 2:
             if(_startWsmTx.psid.choice.extension.present == 1)
                 psid = _startWsmTx.psid.choice.extension.choice.content;
-            else if (_startWsmTx.psid.choice.extension.present == 2)
-                psid = _startWsmTx.psid.choice.extension.choice.extension.choice.content;
+            else if (_startWsmTx.psid.choice.extension.present == 2) {
+                Ext2_t _ext2 = _startWsmTx.psid.choice.extension.choice.extension;
+                if (_ext2.present == 1)
+                    psid = _ext2.choice.content;
+                else if (_ext2.present == 2)
+                    asn_INTEGER2long(&_ext2.choice.extension, &psid);
+            }
             break;
         case 1:
             psid = _startWsmTx.psid.choice.content;
@@ -423,14 +453,30 @@ void *ThreadTxMain(void *arg)
     }
     sprintf(instruction, "%s%s", instruction, " -B");
     sprintf(instruction, "%s%ld", instruction, psid);
+    sprintf(instruction, "%s%s", instruction, " -m");
+    sprintf(instruction, "%s%ld", instruction, dataRate);
     sprintf(instruction, "%s%s", instruction, " -r");
-    sprintf(instruction, "%s%f", instruction, (float)repeatRate/5);
-    printf("\n\n!!! %d !!!\n\n", _setWsmTxInfo.infoElementsIncluded->buf[0]);
-    printf("\n\n!!! %d !!!\n\n", _setWsmTxInfo.infoElementsIncluded->buf[1]);
-    printf("\n\n!!! %d !!!\n\n", _setWsmTxInfo.infoElementsIncluded->buf[2]);
-    // if (_setWsmTxInfo.infoElementsIncluded->buf[1]) {
-    //     sprintf(instruction, "%s%s", instruction, " -A -F -G -H");
-    // }
+    if ((float)repeatRate/5 == 0) {
+        sprintf(instruction, "%s%f", instruction, 0.3);    
+    } else {
+        sprintf(instruction, "%s%f", instruction, (float)repeatRate/5);
+    }    
+    // sprintf(instruction, "%s%s", instruction, " -A -F -G -H");
+
+    if (flag_powerInd || flag_channelInd || flag_datarateInd) {
+        sprintf(instruction, "%s%s", instruction, " -A");
+        // printf("\n\n\nextension running........\n\n\n");
+
+        if (flag_powerInd)
+            sprintf(instruction, "%s%s", instruction, " -H");
+
+        if (flag_channelInd)
+            sprintf(instruction, "%s%s", instruction, " -F");
+
+        if (flag_datarateInd)
+            sprintf(instruction, "%s%s", instruction, " -G");
+        
+    }
 
     printf("%s\n", instruction);
 

@@ -616,6 +616,7 @@ static int Tx_Send (tTxOpts * pTxOpts, int Pause_us)
             }
             else
             {
+				printf("\ncurrent MCS is %d",pPacket->MCS);
             	PayloadLen=dot3_gen(pPayload, PayloadLen, pDev->SeqNum, pTxOpts->PayloadMode,pTxOpts->PayloadByte, pTxOpts->wsmp_n_extension_ind, pTxCHOpts->ChannelNumber, pPacket->MCS, pPacket->TxPower, pTxOpts->psid, pTxOpts->wsa_ind, pTxOpts->wsa_extension_ind, pTxOpts->content,pTxOpts->channelnumber_ind,pTxOpts->datarate_ind,pTxOpts->txpower_ind);
             }
 
